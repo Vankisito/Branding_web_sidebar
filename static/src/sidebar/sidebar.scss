@@ -1,0 +1,378 @@
+// ----------------------------------------------------------------------
+// ERPICO Web Sidebar — tokens de marca (brand book ERPICO)
+// ----------------------------------------------------------------------
+$erpico-horizon: #2c85c7;
+$erpico-horizon-strong: #1f6da8;
+$erpico-horizon-tint: #edf5fb;
+$erpico-sandy: #e99a55;
+$erpico-sandy-tint: #fff4e8;
+$erpico-sandy-ink: #845020;
+$erpico-obsidian: #0c112e;
+$erpico-chalk: #f7f9fb;
+$erpico-lavender: #dfe8ef;
+$erpico-surface: #ffffff;
+$erpico-ink: #0c112e;
+$erpico-secondary: #525c70;
+$erpico-muted: #657086;
+$erpico-line: #e4eaf0;
+$erpico-success: #276b48;
+$erpico-success-tint: #edf6ef;
+$erpico-rail-hover: #1c2446;
+$erpico-rail-text: #b9c5d8;
+$erpico-danger: #b62c2c;
+$erpico-radius: 8px;
+
+// Layout del rail / flyout
+$erpico-topbar-h: 56px;
+$erpico-rail-w: 60px;
+$erpico-rail-logo-h: 52px;
+$erpico-flyout-w: 264px;
+$erpico-allapps-w: 360px;
+
+// ----------------------------------------------------------------------
+// Fuente variable Outfit (títulos) + Work Sans (cuerpo) — OFL
+// ----------------------------------------------------------------------
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/erpico_web_sidebar/static/src/fonts/Outfit-Variable.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Work Sans';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/erpico_web_sidebar/static/src/fonts/WorkSans-Variable.woff2') format('woff2');
+}
+
+// ----------------------------------------------------------------------
+// M1 — topbar mínima: brand ERPICO + systray
+// ----------------------------------------------------------------------
+.o_main_navbar {
+    height: 56px;
+    padding: 0 24px;
+
+    .o_erpico_mobile_toggle {
+        display: none;
+        padding: 0 10px;
+        font-size: 18px;
+        color: $erpico-ink;
+        background: transparent;
+        border: 0;
+    }
+
+    .o_erpico_brand {
+        display: flex;
+        align-items: center;
+        margin-right: 12px;
+
+        .o_erpico_brand_logo {
+            height: 28px;
+            width: auto;
+        }
+    }
+
+    .o_erpico_workspace_divider {
+        width: 1px;
+        height: 24px;
+        background: $erpico-line;
+        margin: 0 14px;
+    }
+
+    .o_erpico_workspace_label {
+        color: $erpico-secondary;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    // Mobile: solo brand + toggle (sin rotulador de espacio)
+    @media (max-width: 768px) {
+        .o_erpico_mobile_toggle {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .o_erpico_workspace_divider,
+        .o_erpico_workspace_label {
+            display: none;
+        }
+    }
+}
+
+// Fallback tipográfico de marca una vez montado el sidebar
+.o_erpico_heading,
+.o_main_navbar {
+    font-family: 'Outfit', 'Work Sans', sans-serif;
+}
+
+/* ===== Sidebar (M2): rail + flyout + todas las apps ===== */
+
+.o_erpico_sidebar {
+    position: fixed;
+    top: $erpico-topbar-h; // debajo de la topbar
+    left: 0;
+    bottom: 0;
+    z-index: $zindex-dropdown - 10; // por debajo de dropdowns, por encima del contenido
+}
+
+.o_erpico_rail {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: $erpico-rail-w;
+    background: $erpico-obsidian;
+    height: 100%;
+
+    .o_erpico_rail_logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: $erpico-rail-logo-h;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+    }
+
+    .o_erpico_rail_apps {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .o_erpico_rail_footer {
+        padding: 8px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+}
+
+.o_erpico_rail_btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    cursor: pointer;
+
+    // indicador de app activa
+    &::before {
+        content: "";
+        position: absolute;
+        left: -9px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 22px;
+        border-radius: 0 3px 3px 0;
+        background: transparent;
+    }
+
+    &:hover,
+    &:focus-visible {
+        background: $erpico-rail-hover;
+        outline: none;
+    }
+
+    &.o_active {
+        background: $erpico-rail-hover;
+
+        &::before {
+            background: $erpico-horizon;
+        }
+
+        .o_erpico_rail_icon {
+            filter: drop-shadow(0 0 6px rgba($erpico-horizon, 0.5));
+        }
+    }
+
+    .o_erpico_rail_icon {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+    }
+
+    .o_erpico_rail_svg {
+        fill: $erpico-rail-text;
+    }
+
+    img.o_erpico_rail_icon {
+        filter: brightness(0) invert(1) opacity(0.85);
+    }
+}
+
+/* Flyout de submenús de la app en hover */
+.o_erpico_flyout {
+    position: absolute;
+    top: 0;
+    left: $erpico-rail-w;
+    width: $erpico-flyout-w;
+    height: 100%;
+    overflow-y: auto;
+    background: $erpico-chalk;
+    border-left: 1px solid $erpico-line;
+    box-shadow: 6px 0 24px rgba($erpico-obsidian, 0.12);
+
+    .o_erpico_flyout_header {
+        padding: 18px 16px 10px;
+
+        strong {
+            display: block;
+            font-family: 'Outfit', 'Work Sans', sans-serif;
+            font-size: 17px;
+            color: $erpico-ink;
+        }
+
+        .o_erpico_flyout_link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: $erpico-horizon;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+
+            .o_erpico_flyout_arrow {
+                width: 13px;
+                height: 13px;
+                fill: currentColor;
+            }
+        }
+    }
+
+    .o_erpico_flyout_menu {
+        list-style: none;
+        margin: 0;
+        padding: 0 8px 16px;
+    }
+
+    .o_erpico_flyout_group {
+        display: block;
+        padding: 12px 10px 4px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: $erpico-muted;
+    }
+
+    .o_erpico_flyout_sub {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .o_erpico_flyout_item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        font-size: 14px;
+        color: $erpico-ink;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            background: $erpico-horizon-tint;
+            color: $erpico-horizon-strong;
+            outline: none;
+        }
+    }
+}
+
+/* Panel "Todas las aplicaciones" */
+.o_erpico_allapps {
+    position: absolute;
+    top: 0;
+    left: $erpico-rail-w;
+    width: $erpico-allapps-w;
+    height: 100%;
+    overflow-y: auto;
+    background: $erpico-chalk;
+    border-left: 1px solid $erpico-line;
+    box-shadow: 6px 0 24px rgba($erpico-obsidian, 0.12);
+
+    .o_erpico_allapps_grid {
+        list-style: none;
+        margin: 0;
+        padding: 4px 16px 24px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+
+        li {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 8px;
+            border: 1px solid $erpico-line;
+            border-radius: 12px;
+            background: $erpico-surface;
+            text-align: center;
+
+            > span {
+                font-size: 13px;
+                font-weight: 600;
+                color: $erpico-ink;
+                line-height: 1.2;
+            }
+
+            .o_erpico_allapps_icon {
+                width: 34px;
+                height: 34px;
+                object-fit: contain;
+                fill: $erpico-secondary;
+            }
+
+            .o_erpico_allapps_open {
+                position: absolute;
+                inset: 0;
+                border: 0;
+                background: transparent;
+                cursor: pointer;
+                border-radius: 12px;
+
+                &:hover + span,
+                &:focus-visible + span {
+                    color: $erpico-horizon-strong;
+                }
+            }
+
+            &:hover {
+                border-color: $erpico-horizon;
+            }
+        }
+    }
+}
+
+/* Compensación del contenido: el layout clásico ocupaba el ancho completo */
+@media (min-width: 992px) {
+    .o_main {
+        margin-left: $erpico-rail-w;
+    }
+}

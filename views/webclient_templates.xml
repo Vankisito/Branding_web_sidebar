@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!--
+        M1: la topbar ERPICO es un template propio del componente NavBar
+        (patch en navbar.js), NO una herencia de template: en Odoo 19 los
+        templates del webclient viven en web.assets_qweb y no generan
+        ir.ui.view, por lo que inherit_id no aplica.
+    -->
+</odoo>

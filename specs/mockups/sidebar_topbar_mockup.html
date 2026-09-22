@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERPICO — Mockup sidebar + topbar</title>
+<style>
+  :root {
+    --topbar-h: 52px;
+    --sidebar-w: 64px;
+    --sidebar-w-exp: 240px;
+    --flyout-w: 260px;
+    --bg: #f5f7f9;
+    --panel: #fff;
+    --border: #e2e6ea;
+    --text: #212529;
+    --muted: #6c757d;
+    --accent: #714b67;
+    --accent-light: #f0e9ee;
+    --hover: rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  /* ===== LAYOUT ===== */
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* ===== TOPBAR MINIMA ===== */
+  .topbar {
+    height: var(--topbar-h);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 14px;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 30;
+  }
+  .topbar .burger { display: none; background: none; border: 0; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .topbar .burger:hover { background: var(--hover); }
+  .topbar .brand { font-weight: 700; font-size: 16px; letter-spacing: .3px; white-space: nowrap; }
+  .topbar .brand span { color: var(--accent); }
+  .topbar .search {
+    flex: 1; max-width: 480px; margin-left: 18px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; color: var(--muted);
+  }
+  .topbar .search input { border: 0; outline: 0; background: transparent; flex: 1; font-size: 13px; color: var(--text); }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .topbar .icon-btn {
+    background: none; border: 0; border-radius: 8px;
+    width: 36px; height: 36px; font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--muted);
+    position: relative;
+  }
+  .topbar .icon-btn:hover { background: var(--hover); color: var(--text); }
+  .topbar .badge {
+    position: absolute; top: 3px; right: 3px;
+    background: #d9534f; color: #fff; font-size: 9px;
+    border-radius: 50%; width: 15px; height: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 4px;
+  }
+
+  /* ===== BODY: sidebar + contenido ===== */
+  .body { display: flex; flex: 1; min-height: 0; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex-shrink: 0; z-index: 20;
+  }
+  .sidebar .nav { flex: 1; overflow-y: auto; overflow-x: visible; padding: 8px 0; }
+  .sidebar .foot { border-top: 1px solid var(--border); padding: 8px 0; }
+
+  .sitem {
+    position: relative;
+    height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .sitem:hover { background: var(--hover); color: var(--text); }
+  .sitem.active { background: var(--accent-light); color: var(--accent); border-left: 3px solid var(--accent); }
+  .sitem .ic { font-size: 20px; }
+  .sitem .tip {
+    position: absolute; left: calc(100% + 18px); top: 50%; transform: translateY(-50%);
+    background: var(--text); color: #fff; padding: 5px 10px; border-radius: 6px;
+    font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity .12s; z-index: 60;
+  }
+  .sitem:hover .tip { opacity: 1; }
+
+  /* Flyout (submenus) */
+  .flyout {
+    position: absolute; left: calc(100% + 10px); top: 0;
+    width: var(--flyout-w); min-height: 60px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: 8px 0; display: none; z-index: 50;
+  }
+  .sitem:hover .flyout { display: block; }
+  .flyout .fhead {
+    padding: 8px 14px; font-weight: 700; font-size: 13px;
+    color: var(--accent); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .flyout .fhead .ic { font-size: 17px; }
+  .flyout a {
+    display: block; padding: 8px 14px; color: var(--text);
+    text-decoration: none; font-size: 13px; border-radius: 6px;
+  }
+  .flyout a:hover { background: var(--hover); color: var(--accent); }
+  .flyout .group {
+    padding: 8px 14px 2px; font-size: 11px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .4px;
+  }
+  .flyout .spacer { height: 6px; }
+  .flyout .sep { border-top: 1px solid var(--border); margin: 6px 0; }
+
+  /* ===== CONTENIDO CENTRAL ===== */
+  .content { flex: 1; min-width: 0; overflow-y: auto; padding: 22px; }
+  .content h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .content .sub { color: var(--muted); margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; cursor: pointer;
+    transition: box-shadow .15s, transform .15s;
+  }
+  .card:hover { box-shadow: 0 6px 16px rgba(0,0,0,.08); transform: translateY(-2px); }
+  .card .c-ic {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 10px;
+  }
+  .card .c-name { font-weight: 600; margin-bottom: 2px; }
+  .card .c-desc { font-size: 12px; color: var(--muted); }
+
+  /* dashboard placeholder (app Dashboards de Odoo) */
+  .dash-frame {
+    margin-top: 18px; height: 480px; border: 2px dashed #c8cdd3;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    color: #98a1aa; font-size: 15px; background: repeating-linear-gradient(
+      45deg, #fafbfc, #fafbfc 12px, #f2f4f6 12px, #f2f4f6 24px
+    );
+  }
+
+  /* ===== MOBILE DRAWER ===== */
+  .backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.35);
+    z-index: 40; display: none;
+  }
+  @media (max-width: 768px) {
+    .topbar .burger { display: block; }
+    .topbar .brand { display: none; }
+    .topbar .search { display: none; }
+    .sidebar {
+      position: fixed; top: var(--topbar-h); bottom: 0; left: 0;
+      transform: translateX(-110%);
+      transition: transform .2s;
+      box-shadow: 4px 0 16px rgba(0,0,0,.1);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .backdrop.show { display: block; }
+    .sitem .tip { display: none; }
+    .flyout { display: none !important; }
+  }
+
+  /* hint chip */
+  .hint {
+    position: fixed; bottom: 12px; right: 12px; z-index: 70;
+    background: var(--text); color: #fff; border-radius: 20px;
+    padding: 8px 14px; font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR MINIMA -->
+  <header class="topbar">
+    <button class="burger" id="burger" aria-label="Abrir menú">☰</button>
+    <div class="brand">ERP<span>ICO</span> <small style="font-weight:400;color:var(--muted)">— Dashboard</small></div>
+    <div class="search">
+      <span>⌕</span>
+      <input type="text" placeholder="Buscar acción, aplicación, registro… (Ctrl+K)">
+    </div>
+    <div class="right">
+      <button class="icon-btn" title="Soporte">❔</button>
+      <button class="icon-btn" title="Notificaciones">🔔<span class="badge">3</span></button>
+      <div class="avatar" title="Usuario">SA</div>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <!-- SIDEBAR IZQUIERDA -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="nav">
+        <!-- App con submenus: hover muestra flyout -->
+        <div class="sitem active" title="Tableros">
+          <span class="ic">📊</span>
+          <span class="tip">Tableros</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">📊</span> Tableros</div>
+            <a>Ventas</a>
+            <a>Inventario</a>
+            <a>E-commerce</a>
+            <a>Finanzas</a>
+            <div class="sep"></div>
+            <a>Configuración de tableros</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="CRM">
+          <span class="ic">📇</span>
+          <span class="tip">CRM</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">📇</span> CRM</div>
+            <a>Pipeline</a>
+            <a>Prospectos</a>
+            <a>Oportunidades</a>
+            <div class="group">Reportes</div>
+            <a>Análisis de ventas</a>
+            <div class="spacer"></div>
+            <div class="sep"></div>
+            <a>Configuración</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="Ventas">
+          <span class="ic">🛒</span>
+          <span class="tip">Ventas</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">🛒</span> Ventas</div>
+            <a>Órdenes</a>
+            <a>Cotizaciones</a>
+            <a>Clientes</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="Compras">
+          <span class="ic">📦</span>
+          <span class="tip">Compras</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">📦</span> Compras</div>
+            <a>Órdenes de compra</a>
+            <a>Proveedores</a>
+            <a>Precios</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="Inventario">
+          <span class="ic">📚</span>
+          <span class="tip">Inventario</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">📚</span> Inventario</div>
+            <a>Productos</a>
+            <a>Movimientos</a>
+            <a>Almacenes</a>
+            <div class="group">Reportes</div>
+            <a>Valoración</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="Punto de venta">
+          <span class="ic">🛍️</span>
+          <span class="tip">Punto de venta</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">🛍️</span> Punto de venta</div>
+            <a>Nueva sesión</a>
+            <a>Pedidos</a>
+            <a>Productos</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="Sitio web">
+          <span class="ic">🌐</span>
+          <span class="tip">Sitio web</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">🌐</span> Sitio web</div>
+            <a>Nuevo sitio web</a>
+            <a>Páginas</a>
+            <a>Blog</a>
+            <a>Menús</a>
+          </div>
+        </div>
+
+        <div class="sitem" title="Ajustes">
+          <span class="ic">⚙️</span>
+          <span class="tip">Ajustes</span>
+          <div class="flyout">
+            <div class="fhead"><span class="ic">⚙️</span> Ajustes</div>
+            <a>Generales</a>
+            <a>Usuarios</a>
+            <a>Empresa</a>
+            <a>Técnico</a>
+          </div>
+        </div>
+      </nav>
+
+      <div class="foot">
+        <div class="sitem" title="Cambiar empresa">
+          <span class="ic">🏢</span>
+          <span class="tip">Cambiar empresa</span>
+        </div>
+        <div class="sitem" title="Cerrar sesión">
+          <span class="ic">⏻</span>
+          <span class="tip">Cerrar sesión</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO CENTRAL: placeholder de la app Dashboards de Odoo -->
+    <main class="content">
+      <h1>Dashboard</h1>
+      <div class="sub">Aquí se monta la app «Dashboards» de Odoo (spreadsheet_dashboard) tal cual — el usuario admin aterriza acá al entrar.</div>
+
+      <div class="cards">
+        <div class="card"><div class="c-ic">🛒</div><div class="c-name">Ventas</div><div class="c-desc">Facturación, pedidos, clientes</div></div>
+        <div class="card"><div class="c-ic">📚</div><div class="c-name">Inventario</div><div class="c-desc">Stock, movimientos, valoración</div></div>
+        <div class="card"><div class="c-ic">🌐</div><div class="c-name">E-commerce</div><div class="c-desc">Tienda online, pedidos web</div></div>
+        <div class="card"><div class="c-ic">💶</div><div class="c-name">Finanzas</div><div class="c-desc">Ingresos, gastos, flujo</div></div>
+      </div>
+
+      <div class="dash-frame">▦ Dashboard real de Odoo (hojas de cálculo) se renderiza aquí</div>
+    </main>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="hint">Hover sobre iconos de la izquierda → submenú. Reducí la ventana (≤768px) → drawer mobile.</div>
+
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const burger = document.getElementById('burger');
+  const backdrop = document.getElementById('backdrop');
+  function openMenu() {
+    sidebar.classList.add('open');
+    backdrop.classList.add('show');
+  }
+  function closeMenu() {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('show');
+  }
+  burger.addEventListener('click', openMenu);
+  backdrop.addEventListener('click', closeMenu);
+</script>
+</body>
+</html>

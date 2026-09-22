@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="erpico_web_sidebar.NavBar">
+        <header class="o_navbar" t-ref="root">
+            <nav
+                class="o_main_navbar d-print-none"
+                data-command-category="disabled"
+            >
+                <button
+                    class="o_erpico_mobile_toggle"
+                    aria-label="Abrir menú"
+                    title="Abrir menú"
+                    t-on-click="() => this.env.bus.trigger('erpico:open-drawer')"
+                >
+                    <i class="fa fa-bars" aria-hidden="true"/>
+                </button>
+
+                <a class="o_erpico_brand" href="/odoo" aria-label="Erpico, inicio">
+                    <img
+                        class="o_erpico_brand_logo"
+                        src="/erpico_web_sidebar/static/src/images/erpico-logo-horizontal.png"
+                        alt="Erpico"
+                    />
+                </a>
+                <span class="o_erpico_workspace_divider"/>
+                <span class="o_erpico_workspace_label">Mi espacio de trabajo</span>
+
+                <!-- Systray de Odoo intacto (buscador, notificaciones, usuario...) -->
+                <div class="o_menu_systray d-flex flex-shrink-0 ms-auto bg-inherit" role="menu">
+                    <t t-foreach="systrayItems" t-as="item" t-key="item.key">
+                        <div t-att-data-index="item.index"/>
+                        <ErrorHandler onError="error => this.handleItemError(error, item)">
+                            <t t-component="item.Component" t-props="item.props"/>
+                        </ErrorHandler>
+                    </t>
+                </div>
+            </nav>
+        </header>
+    </t>
+
+</templates>

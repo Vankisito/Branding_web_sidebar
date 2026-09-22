@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+
+    <t t-name="erpico_web_sidebar.Sidebar">
+        <nav
+            t-if="state.ready"
+            class="o_erpico_sidebar d-none d-lg-flex"
+            aria-label="Aplicaciones ERPICO"
+        >
+            <!-- Rail -->
+            <div class="o_erpico_rail">
+                <a
+                    href="/odoo"
+                    class="o_erpico_rail_logo"
+                    aria-label="ERPICO, inicio"
+                    t-on-click="() => { this.state.allAppsOpen = false; }"
+                >
+                    <img
+                        src="/erpico_web_sidebar/static/src/images/erpico-favicon.png"
+                        alt="ERPICO"
+                    />
+                </a>
+
+                <div class="o_erpico_rail_apps">
+                    <t t-foreach="state.railApps" t-as="app" t-key="app.id">
+                        <button
+                            type="button"
+                            class="o_erpico_rail_btn"
+                            t-att-class="{
+                                'o_active': state.activeAppId === app.id,
+                            }"
+                            t-att-title="app.name"
+                            t-att-aria-label="app.name"
+                            t-on-mouseenter="() => this.hoverApp(app)"
+                            t-on-mouseleave="() => this.clearHover()"
+                            t-on-click.stop="() => this.selectApp(app)"
+                        >
+                            <t t-if="app._icon.kind === 'img'">
+                                <img class="o_erpico_rail_icon" t-att-src="app._icon.src" alt="" />
+                            </t>
+                            <t t-else="">
+                                <svg class="o_erpico_rail_icon o_erpico_rail_svg" aria-hidden="true">
+                                    <use t-att-href="app._icon.src" />
+                                </svg>
+                            </t>
+                        </button>
+                    </t>
+                </div>
+
+                <div class="o_erpico_rail_footer">
+                    <button
+                        type="button"
+                        class="o_erpico_rail_btn"
+                        t-att-class="{ 'o_active': state.allAppsOpen }"
+                        title="Todas las aplicaciones"
+                        aria-label="Todas las aplicaciones"
+                        t-on-click="() => this.toggleAllApps()"
+                    >
+                        <svg class="o_erpico_rail_icon o_erpico_rail_svg" aria-hidden="true">
+                            <use href="/erpico_web_sidebar/static/src/icons/ui-sprite.svg#i-grid" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flyout del app en hover -->
+            <t t-if="state.flyoutApp" t-set="flyoutTree" t-value="state.flyoutApp._childrenTree" />
+            <div
+                t-if="state.flyoutApp and !state.allAppsOpen"
+                class="o_erpico_flyout"
+                t-on-mouseleave="() => this.clearHover()"
+            >
+                <div class="o_erpico_flyout_header">
+                    <strong t-esc="state.flyoutApp.name" />
+                    <button
+                        type="button"
+                        class="o_erpico_flyout_link"
+                        t-on-click.stop="() => this.selectApp(state.flyoutApp)"
+                    >
+                        <span>Ir a la app</span>
+                        <svg class="o_erpico_flyout_arrow" aria-hidden="true">
+                            <use href="/erpico_web_sidebar/static/src/icons/ui-sprite.svg#i-arrow" />
+                        </svg>
+                    </button>
+                </div>
+                <ul class="o_erpico_flyout_menu">
+                    <t t-call="erpico_web_sidebar.FlyoutMenu">
+                        <t t-set="items" t-value="flyoutTree" />
+                    </t>
+                </ul>
+            </div>
+
+            <!-- Panel "Todas las aplicaciones" -->
+            <div t-if="state.allAppsOpen" class="o_erpico_allapps">
+                <div class="o_erpico_flyout_header">
+                    <strong>Todas las aplicaciones</strong>
+                </div>
+                <ul class="o_erpico_allapps_grid">
+                    <t t-foreach="allAppsList" t-as="app" t-key="app.id">
+                        <li>
+                            <t t-if="app._icon.kind === 'img'">
+                                <img class="o_erpico_allapps_icon" t-att-src="app._icon.src" alt="" />
+                            </t>
+                            <t t-else="">
+                                <svg class="o_erpico_allapps_icon" aria-hidden="true">
+                                    <use t-att-href="app._icon.src" />
+                                </svg>
+                            </t>
+                            <span t-esc="app.name" />
+                            <button
+                                type="button"
+                                class="o_erpico_allapps_open"
+                                aria-label="Abrir"
+                                t-on-click.stop="() => this.selectApp(app)"
+                            />
+                        </li>
+                    </t>
+                </ul>
+            </div>
+        </nav>
+    </t>
+
+    <t t-name="erpico_web_sidebar.FlyoutMenu">
+        <t t-foreach="items" t-as="item" t-key="item.id">
+            <li t-if="!item.childrenTree.length">
+                <button
+                    type="button"
+                    class="o_erpico_flyout_item"
+                    t-on-click.stop="() => this.openItem(item)"
+                    t-esc="item.name"
+                />
+            </li>
+            <li t-else="">
+                <span class="o_erpico_flyout_group" t-esc="item.name" />
+                <ul class="o_erpico_flyout_sub">
+                    <t t-call="erpico_web_sidebar.FlyoutMenu">
+                        <t t-set="items" t-value="item.childrenTree" />
+                    </t>
+                </ul>
+            </li>
+        </t>
+    </t>
+
+</templates>

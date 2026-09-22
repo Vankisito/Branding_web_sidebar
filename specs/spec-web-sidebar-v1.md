@@ -1,0 +1,310 @@
+# Spec — erpico_web_sidebar v1 — Navegación tipo Tiendanube para Odoo 19
+
+**Estado:** Diseño aprobado (decisiones v1) → siguiente: implementación
+**Fecha:** 2026-09-22
+**Versión objetivo:** 19.0.1.0.0
+**Licencia:** LGPL-3.0 or later (OCA)
+**Referencias visuales:**
+- `specs/mockups/sidebar_topbar_mockup.html` (mockup propio, base funcional)
+- `C:\Users\Santi\Downloads\erpico_app_mockup.html` (mockup del jefe — layout, rail, flyout, drawer, topbar, datos demo)
+- `C:\Users\Santi\Downloads\erpico_website-Desarrollo\` (assets marca: `public/brand/`, `public/icons/features/`, brand book)
+
+---
+
+## 1. Objetivo
+
+Sustituir la navegación del backend de Odoo por una **sidebar tipo Tiendanube**:
+
+- **Rail** vertical izquierdo, 60px, fondo obsidian `#0C112E`, con iconos de app (brand SVG ERPICO).
+- **Flyout** blanco 264px al hover/clic: submenús reales de primer nivel de cada app (click → navega al módulo).
+- **Topbar mínima**: brand ERPICO + systray completo de Odoo (buscador original incluido).
+- **Landing admin**: app **Dashboards** nativa de Odoo (`spreadsheet_dashboard`).
+- **Mobile (≤768px)**: sidebar colapsa a **drawer** con backdrop + acordeón de submenús.
+- **Todos los usuarios** ven sidebar. No-admin: sin tableros, aterrizan en app default normal (decisión futura para no-admin).
+
+## 2. Decisiones confirmadas (D-10 … D-15)
+
+| ID | Decisión |
+|---|---|
+| D-10 | Dashboards = app nativa `spreadsheet_dashboard` tal cual (sin réplica del mockup del jefe) |
+| D-11 | Iconos de app = **SVG brand ERPICO** (carpeta assets del módulo) |
+| D-12 | Rail muestra solo apps mapeadas que estén **instaladas** |
+| D-13 | Flyout = submenús reales vía `menuService.getMenuAsTree().childrenTree` |
+| D-14 | Buscador Odoo original se mantiene (systray intacto) |
+| D-15 | Ajustes + Cambiar empresa duplicados en rail-footer |
+| D-16 | Fuente Outfit embebida en el módulo |
+| D-17 | Módulo separado `erpico_web_sidebar` (autocontenido, specs propias) |
+| D-18 | Estrategia OCA: **solo herencia/overrides en módulo, jamás editar core** |
+| D-19 | Apps objetivo v1: Contactos, CRM, Ventas, POS, Website, E-commerce, Compras, Facturación, Inventario |
+
+## 3. Alcance / No-alcance
+
+**Incluye v1:**
+- Rail + flyout + topbar reemplazo visual + drawer mobile.
+- Patch landing admin → Dashboards.
+- Duplicar Ajustes y Cambiar empresa en rail.
+- Assets: iconos brand, Outfit, logo ERPICO.
+
+**NO incluye v1:**
+- Dashboard réplica del mockup del jefe (KPIs/gráficos/tabla) — queda para módulo futuro.
+- Búsqueda propia Ctrl+K (se usa la de Odoo).
+- Personalización para no-admin (futuro).
+- Soporte RTL avanzado / temas custom.
+
+## 4. Cómo sale del core (verificado en código Odoo 19)
+
+### 4.1 Anatomía del WebClient
+
+`web.WebClient` template (`webclient.xml`):
+```xml
+<t t-name="web.WebClient">
+    <t t-if="!state.fullscreen">
+        <NavBar/>
+    </t>
+    <ActionContainer/>
+    <MainComponentsContainer/>
+</t>
+```
+- `NavBar` (web.NavBar) contiene: AppsMenu, Brand dropdown, breadcrumbs, SectionsMenu, y el **systray** (`web.NavBar` líneas 11-42) — sus items vienen de `registry.category("systray")`.
+- `MainComponentsContainer` monta componentes del registry **`main_components`** (`main_components_container.js:7`). → **Hook perfecto para montar el sidebar globalmente sin tocar el template WebClient.**
+
+### 4.2 Datos de menús (`menu_service.js`)
+
+```js
+getApps()            // root.children -> apps (incluye webIconData, xmlid, actionID, actionPath)
+getMenuAsTree(id)    // => .childrenTree (submenús recursivos)
+selectMenu(menu)     // doAction(actionID) + setCurrentMenu
+getCurrentApp()
+```
+Handler core de navegación: `onNavBarDropdownItemSelection(menu) => menuService.selectMenu(menu)` (`navbar.js:205`).
+
+### 4.3 Aterrizaje default
+
+`WebClient._loadDefaultApp()` (`webclient.js:143`): selecciona `root.children[0]` (primer app por sequence). Se parchea para admin → app Dashboards.
+
+### 4.4 Systray
+
+El systray se renderiza dentro de `web.NavBar`. **Estrategia: NO reemplazar el componente NavBar** — se hereda el template `web.NavBar` (t-inherit), se eliminan por xpath las secciones sobrantes (AppsMenu, brand, breadcrumbs, sections) y se inyecta marca + toggle. Así el systray (buscador, notificaciones, usuario, mensajes, debug) queda intacto → cumple D-14.
+
+## 5. Arquitectura del módulo
+
+```
+erpico_web_sidebar/
+├── __manifest__.py
+├── __init__.py
+├── readme/
+│   ├── DESCRIPTION.rst
+│   ├── USAGE.rst
+│   └── CONTRIBUTORS.rst
+├── specs/
+│   ├── spec-web-sidebar-v1.md          (este archivo)
+│   └── mockups/sidebar_topbar_mockup.html
+├── views/
+│   └── webclient_templates.xml         (t-inherit web.NavBar + patches de marca)
+└── static/src/
+    ├── sidebar/                        (OWL, Odoo 19 => OWL 3.x, ES modules)
+    │   ├── sidebar.js                  (componente principal + subcomponentes)
+    │   ├── sidebar.xml
+    │   └── sidebar.scss                (tokens marca + estilos rail/flyout/drawer)
+    ├── icons/
+    │   ├── brand-*.svg                 (copia de public/icons/features/ del repo website)
+    │   └── ui-sprite.svg               (symbols genéricos: grid, dashboard, settings, etc. extraídos del mockup)
+    ├── fonts/
+    │   └── Outfit-[wght]-woff2.woff2   (extraída del base64 del mockup del jefe)
+    └── images/
+        └── erpico-logo-horizontal.png  (de public/brand/)
+```
+
+### 5.1 Manifest
+
+```python
+{
+    "name": "ERPICO Web Sidebar",
+    "version": "19.0.1.0.0",
+    "license": "LGPL-3",
+    "category": "Productivity",
+    "summary": "Tiendanube-style sidebar navigation + minimal topbar for Odoo 19",
+    "depends": ["web"],
+    "data": ["views/webclient_templates.xml"],
+    "assets": {
+        "web.assets_backend": [
+            "erpico_web_sidebar/static/src/sidebar/sidebar.scss",
+            "erpico_web_sidebar/static/src/sidebar/sidebar.js",
+            "erpico_web_sidebar/static/src/sidebar/sidebar.xml",
+        ]
+    },
+}
+```
+- `depends: ["web"]` únicamente. Detección de Dashboards **en runtime** (soft): el módulo funciona aunque `spreadsheet_dashboard` no esté instalado.
+- Orden canónico de claves OCA.
+
+### 5.2 Topbar (t-inherit de `web.NavBar`)
+
+En `views/webclient_templates.xml`:
+
+```xml
+<t t-inherit="web.NavBar" t-inherit-mode="extension">
+    <!-- quitar AppsMenu -->
+    <xpath expr="//t[@t-call='web.NavBar.AppsMenu']" position="replace"/>
+    <!-- quitar brand dropdown -->
+    <xpath expr="//DropdownItem[contains(@class, 'o_menu_brand')]" position="replace"/>
+    <!-- quitar breadcrumbs -->
+    <xpath expr="//div[hasclass('o_navbar_breadcrumbs')]" position="replace"/>
+    <!-- quitar sections -->
+    <xpath expr="//div[hasclass('o_menu_sections')]" position="replace"/>
+    <!-- brand ERPICO + toggle mobile al inicio del nav -->
+    <xpath expr="//nav[hasclass('o_main_navbar')]" position="inside">
+        <button t-if="this.ui.isSmall" class="o_erpico_mobile_toggle" aria-label="Abrir menú" t-on-click="..."/>
+        <a class="o_erpico_brand" href="/odoo">
+            <img src="/erpico_web_sidebar/static/src/images/erpico-logo-horizontal.png" alt="Erpico"/>
+        </a>
+        <span class="o_erpico_workspace">Mi espacio de trabajo</span>
+    </xpath>
+</t>
+```
+> Nota: `DropdownItem`/toggle brand — comprobar selectores exactos contra `navbar.xml` en build. El toggle mobile abre el drawer (bus del sidebar o evento DOM).
+
+Systray queda **igual** (`o_menu_systray` ms-auto). Con esto la topbar = brand + systray, D-14 cumplido.
+
+### 5.3 Sidebar (componente OWL en `main_components`)
+
+```js
+// sidebar.js
+registry.category("main_components").add("erpico_web_sidebar.Sidebar", { Component: Sidebar }, { sequence: 10 });
+```
+Monta rail + flyout + drawer sin tocar el template de WebClient.
+
+**Estado interno (OWL):**
+```js
+state = {
+    apps: menuService.getApps(),            // filtrados por mapeo + instalados
+    currentApp: menuService.getCurrentApp(),
+    openFlyoutApp: null,                    // app del flyout activo
+    allAppsOpened: false,                   // panel "Todas las aplicaciones"
+    drawerOpened: false,                    // mobile
+}
+```
+Servicios: `menu`, `action`, `ui` (para `isSmall`). Suscripciones: `MENUS:APP-CHANGED` (actualizar currentApp), `ACTION_MANAGER:UI-UPDATED` (ocultar en fullscreen, igual que WebClient).
+
+**Eventos (igual que el mockup):**
+- `pointerenter`/`focus` sobre rail-button → abrir flyout (`openFlyout(app)`).
+- `pointerleave` con delay 180ms → cerrar flyout.
+- `ArrowRight/ArrowDown` → abrir flyout (accesibilidad).
+- `Escape` → cerrar flyout/drawer.
+- Click en submenú → `menuService.selectMenu(item)` (D-13, misma API que el core).
+- Rail-footer: Ajustes → `selectMenu` del menú settings (`base.menu_administration`, verificar xmlid en runtime); Cambiar empresa → **reutilizar `SwitchCompanyMenu`** (`@web/webclient/switch_company_menu/switch_company_menu`, component exportado) renderizado en el footer del rail → dropdown real de empresas, sin duplicar lógica.
+
+### 5.4 Mapeo app → icono brand (D-11, D-19)
+
+`getApps()` devuelve root menus con `xmlid`. Mapa clave = xmlid del menú root (provisional — **verificar en runtime con dump de `menuService.getApps()`** durante build):
+
+| App Odoo | xmlid root (provisional) | Icono |
+|---|---|---|
+| Dashboards | `spreadsheet_dashboard.spreadsheet_dashboard_menu_root` | `i-dashboard` (UI) |
+| Contactos | `contacts.menu_contacts` | `i-building` (UI) * |
+| CRM | `crm.menu_crm_root` | `brand-clientes-reportes` |
+| Ventas | `sale.menu_sale_root` | `brand-pedidos-devoluciones` |
+| Punto de venta | `point_of_sale.main_menu_pos_root` | `brand-punto-de-venta` |
+| Sitio web | `website.menu_website_root` | `i-globe` (UI) * |
+| E-commerce | `website_sale.menu_ecommerce` | `brand-ecommerce-integrado` * |
+| Compras | `purchase.menu_purchase_root` | `brand-compras` |
+| Facturación | `account.menu_finance` | `brand-facturacion` |
+| Inventario | `stock.menu_stock_root` | `brand-inventario-ubicacion` |
+
+\* Contactos y Sitio web no tienen brand icon dedicado en `public/icons/features/`; se usan iconos UI de la sprite (propuesta — el jefe puede proveer brand icons).
+\* E-commerce en Odoo 19 viene de `website_sale` (menú root propio con web_icon). Verificar xmlid real.
+
+**Lógica de filtrado (D-12):** se renderizan solo apps del mapa cuyo xmlid exista entre `getApps()`. Apps no mapeadas (proyectos, marketing…) **no** aparecen en el rail (accesibles vía "Todas las aplicaciones").
+**Fallback de icono:** si una app del mapa tiene xmlid distinto al provisional → intentar match por nombre (`getCurrentApp().name` traducción) o usar `webIconData` de la app.
+
+**Orden del rail (mockup):** Tableros, Contactos, CRM, Ventas, Compras, Inventario, Punto de venta, Sitio web, E-commerce, Facturación. Se mantiene sequence del mapa (array ordenado), no la de Odoo.
+
+### 5.5 "Todas las aplicaciones" (botón grid, rail-top)
+
+Abre panel flyout grande listando **todas** las apps de `getApps()` (icono brand si hay mapeo, si no `webIconData`). Click → `selectMenu`.
+
+### 5.6 Landing admin — Dashboards (D-10)
+
+Patch sobre `WebClient` (`@web/core/utils/patch`):
+
+```js
+import { WebClient } from "@web/webclient/webclient";
+patch(WebClient.prototype, {
+    async _loadDefaultApp() {
+        const menu = useService?NO — hook no disponible en método estático del prototype;
+        // ver §5.6.1
+    },
+});
+```
+
+> **Ojo implementación**: `_loadDefaultApp` es método de instancia; el servicio `menu` se accede vía `this.menuService` (ya expuesto en WebClient). Patch limpio:
+
+```js
+patch(WebClient.prototype, {
+    async _loadDefaultApp() {
+        const isAdmin = this.session?.uid && ...; // verificar group
+        const dashboards = this.menuService.getApps().find(app =>
+            app.xmlid?.includes("spreadsheet_dashboard_menu_root") ||
+            app.name?.toLowerCase().includes("dashboards"));
+        if (dashboards) return this.menuService.selectMenu(dashboards);
+        return super._loadDefaultApp();
+    },
+});
+```
+- **Admin = usuario con group** `spreadsheet_dashboard.group_dashboard_manager` (o fallback: `user_has_groups` vía `orm`). Detalle a cerrar en build.
+- No-admin: `super._loadDefaultApp()` → comportamiento core (primer app).
+- Si `spreadsheet_dashboard` no instalado: `super`.
+
+### 5.7 Mobile drawer (≤768px)
+
+- Rail oculto; botón toggle en topbar abre **drawer** (300-320px, obsidian o blanco según mockup — mockup: drawer blanco con logo marca, acordeón de apps con submenús, footer con acciones).
+- Backdrop oscuro click → cierra. `Escape` cierra. `ui.isSmall` de Odoo como breakpoint (768px).
+- Acordeón: por app → links de submenú (childrenTree), click → `selectMenu`.
+
+### 5.8 Estilos y tokens (vienen del brand book + mockup)
+
+```scss
+$erpico-horizon: #2c85c7;  $erpico-horizon-strong: #1f6da8;
+$erpico-sandy: #e99a55;    $erpico-obsidian: #0c112e;
+$erpico-chalk: #f7f9fb;    $erpico-lavender: #dfe8ef;
+$erpico-rail-hover: #1c2446;  $erpico-rail-text: #b9c5d8;
+$erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
+```
+- Fuentes: `@font-face` Outfit (títulos) + Work Sans (body) — ambas embebidas (Outfit extraída del base64 del mockup; Work Sans del repo website o Google Fonts).
+- Content: `margin-left: $rail-w` en `.o_action_manager` / wrapper (solo desktop).
+- Topbar: `position: sticky` sobre la sidebar (z-index: rail 40, topbar 30, flyout 45 — del mockup).
+- Fullscreen: sidebar `display:none` cuando `ACTION_MANAGER:UI-UPDATED = fullscreen`.
+
+## 6. Assets a extraer (build-time)
+
+| Fuente | Destino |
+|---|---|
+| `website-Desarrollo/public/icons/features/*.svg` (15 icons) | `static/src/icons/brand-*.svg` |
+| `<symbol id="i-*">` del mockup (grid, dashboard, settings, building, chevron, close, menu, help, bell, down, arrow…) | sprite `ui-sprite.svg` |
+| Outfit woff2 del base64 del mockup (bloque `@font-face`, líneas ~13-62) | `static/src/fonts/` |
+| `erpico-logo-horizontal.png` | `static/src/images/` |
+
+## 7. Plan de QA
+
+1. **Unit QUnit** (JS): mapeo/filtro de apps (D-12), orden rail, open/close flyout, patch `_loadDefaultApp` (admin vs no-admin vs sin dashboards).
+2. **Tour/runtime Edge headless + CDP** (patrón validado en `erpico_debranding`): login admin → `/web` → console errores 0, rail renderizado, flyout abre, click submenú navega, landing = Dashboards.
+3. **Manual matrix** (docker `debrand_test`): login admin y usuario ventas (no-admin), apps instaladas/desinstaladas, mobile viewport 375px, multi-empresa, teclado (Escape/arrows).
+4. Re-validar que `erpico_debranding` (fix BUG-011) sigue sin errores con el módulo nuevo instalado.
+
+## 8. Milestones
+
+- **M0**: skeleton módulo (manifest, readme, folders) + assets extraídos → verificación assets en `?debug=assets`.
+- **M1**: t-inherit `web.NavBar` → topbar brand + systray OK; navbar sobrante eliminada.
+- **M2**: Sidebar en `main_components` → rail + flyout + filtrado mapeo + selectMenu + "Todas las aplicaciones".
+- **M3**: patch `_loadDefaultApp` admin → Dashboards.
+- **M4**: drawer mobile + footer Ajustes/SwitchCompanyMenu + ajustes CSS de contenido/fullscreen.
+- **M5**: QUnit + runtime CDP + matrix manual; docs (Bugs.md?, Changelog sesión 8); commit.
+
+## 9. Riesgos / puntos abiertos
+
+1. **xmlids de menús root** (contacts, website, website_sale, account, pos) provisorios → dump real en build.
+2. Ajustes: confirmar acción/menú settings exacto (community).
+3. `SwitchCompanyMenu` en rail footer: verificar props/estado requeridos (puede requerir wrapper).
+4. Iconos Contactos/Sitio web sin brand → ¿jefe provee? (alternativa: `i-building`/`i-globe`).
+5. Fusión con `erpico_debranding`: el sidebar aplica a TODO el backend; debranding (bot/banner) no interfiere, pero re-validar juntos.
+6. Menú root de Dashboards en EDITION community vs enterprise (`spreadsheet_dashboard` es community; verificar BD test).
