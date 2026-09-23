@@ -115,6 +115,8 @@ docker exec -i odoo_sidebar_test odoo -d sidebar_test --db_host=db_sidebar_test 
 - Sin tests QUnit (APP_MAP, patch landing, filtros D-12) → candidatos QUnit v2.
 - Sin tour Odoo.
 - Sin tests Python (módulo 100% frontend, sin modelos → no aplica `ir.model.access` ni HttpCase propio).
+- **Pendiente S-019 (flyout):** CDP para verificar que el mouse dentro del flyout lo mantiene abierto (ahora solo probe manual; fix aún no aplicado).
+- **Pendiente S-023 (topbar módulo):** CDP tras implementar: al entrar a un módulo → breadcrumbs portal `.o_navbar_breadcrumbs` poblado + `o_menu_brand` con `currentApp.name` + `.o_menu_sections` visible (≥992px); C10 (systray) sin regresión.
 
 ---
 

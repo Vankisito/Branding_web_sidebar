@@ -21,6 +21,14 @@ Análisis de código + tests CDP nuevos sobre `sidebar_test` para **detectar** b
 
 Archivos modificados: `specs/Bugs.md` (S-019..S-022), `specs/spec-web-sidebar-v1.md` §9.1 (riesgos R-M1..R-M3, R-L1..R-L6), `specs/TESTS_COVERAGE.md` (C12 + scripts), `readme/CHANGELOG.rst` (entrada QA Fase 6). Probes temporales eliminados.
 
+### Apuntes cliente (2026-09-23) — anotados como bugs/mejoras
+
+Feedback directo del jefe tras usar el módulo. Por directriz: **anotar, no implementar** (fixes en plan).
+
+- **Apunte 1 → BUG-S-019 (ya abierto, Media).** "Es complejo ingresar a un apartado desde la barra lateral; al poner el mouse encima de una sección y querer entrar a un submenú, se va demasiado rápido y no permite seleccionar." Confirma el bug del flyout (timer 180ms de `clearHover` no cancelado por `mouseenter` del flyout). Reporte agregado a Bugs.md; fix propuesto (`t-on-mouseenter` cancelando timer) queda pendiente.
+- **Apunte 2 → BUG-S-023 nuevo (mejora, Media) + D-28.** "Quisiera que al ingresar a un módulo de Odoo aún existiese (persista) la topbar; es mejor y más intuitivo conservar el menú del módulo." Aclarado con usuario: **falta el menú del módulo en la topbar** (brand + breadcrumbs + secciones que el patch de `web.NavBar` eliminó — quedaba solo logo + systray). Restaurar en `navbar.xml` conservando bloques core; AppsMenu no vuelve (el rail lo sustituye). Revierte parcialmente D-14.
+- Verificación: al navegar a `/odoo/contacts` la topbar ERPICO SÍ persiste (no es bug de ocultamiento) — el issue es solo contenido (falta contexto del módulo).
+
 ---
 
 ## Sesión 2026-09-23 — Fase 5 cierre: matriz manual + regresión debranding

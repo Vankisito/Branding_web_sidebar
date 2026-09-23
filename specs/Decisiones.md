@@ -232,3 +232,23 @@
 2. `test_sale_order_portal`: `NotNullViolation sale_order.picking_policy` — campo nuevo requerido que el test de la rama debranding no provee.
 
 **Por qué / consecuencia:** `erpico_web_sidebar` solo inyecta `web.assets_backend`; no participa en frontend ni modelos `sale`. El riesgo 5 de la spec (sidebar no rompe debranding) queda **verificado**. BUG-S-017 queda documentado (Bugs.md) y la remediación corresponde a la rama `erpico_debranding`.
+
+---
+
+## D-28 — Topbar restaura contexto del módulo (2026-09-23)
+
+**Fecha:** 2026-09-23
+**Decidido por:** cliente (jefe)
+
+**Contexto:** la topbar v1 (D-14) dejaba solo logo ERPICO + systray, eliminando brand/breadcrumbs/secciones del core. Feedback cliente: "al ingresar a un módulo faltaría el menú del módulo, es mejor y más intuitivo conservar la topbar [con contexto del módulo]".
+
+**Decisión:** restaurar en la topbar el **contexto del módulo** como Odoo stock, conservando la marca ERPICO:
+- Brand del módulo actual (`currentApp.name`, `o_menu_brand`).
+- Breadcrumbs (portal `.o_navbar_breadcrumbs` del core).
+- Secciones del módulo (`web.NavBar.SectionsMenu`) gateadas `!this.ui.isSmall`.
+- Systray + toggle mobile intactos.
+- **AppsMenu del core NO se restaura** — el rail/drawer ERPICO lo sustituye.
+
+**Por qué:** mejor orientación dentro del módulo; el rail ya cumple la función de selector de apps. Únicamente template (`navbar.xml`) — el componente `NavBar` expone `currentApp`/`currentAppSections`/`onNavBarDropdownItemSelection` sin cambios JS.
+
+**Consecuencias:** revierte parcialmente D-14 (topbar mínima). Ver BUG-S-023 (mejora abierta).

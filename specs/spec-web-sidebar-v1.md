@@ -169,6 +169,24 @@ En `views/webclient_templates.xml`:
 
 Systray queda **igual** (`o_menu_systray` ms-auto). Con esto la topbar = brand + systray, D-14 cumplido.
 
+### 5.2a Topbar v2 — restaurar contexto del módulo (D-28)
+
+**Estado objetivo (feedback cliente 2026-09-23):** la topbar anterior era demasiado
+mínima (logo ERPICO + systray) y perdía la orientación dentro del módulo. Nueva
+topbar **conserva el contexto del módulo como Odoo stock**:
+
+- Logo ERPICO (marca) mantenido como brand de la empresa.
+- **Brand del módulo** (`o_menu_brand`, `DropdownItem` con `currentApp.name`) — al estar dentro de un módulo muestra su nombre (clic → raíz del módulo).
+- **Breadcrumbs** (`<div class="o_navbar_breadcrumbs d-contents"/>`) — portal del core (`control_panel.xml` los monta ahí; si no hay breadcrumbs queda vacío sin efectos).
+- **Secciones del módulo** (`<t t-call="web.NavBar.SectionsMenu">` gateado `!this.ui.isSmall` y `currentAppSections.length`).
+- Systray + toggle mobile **sin cambios**.
+- **AppsMenu del core NO se restaura:** el rail/drawer sustituye el selector de apps (D-20).
+
+Implementación: patch del template `web.NavBar` (`navbar.xml`) que **conserva** los
+bloques core (brand, breadcrumbs, sections) en lugar de eliminarlos. El componente
+`NavBar` ya expone `currentApp` / `currentAppSections` / `onNavBarDropdownItemSelection`
+— no requiere cambios de JS. Ver BUG-S-023.
+
 ### 5.3 Sidebar (componente OWL en `main_components`)
 
 ```js
