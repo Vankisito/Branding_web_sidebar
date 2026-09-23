@@ -275,3 +275,42 @@ prefijo `BUG-S-` (evita colisión con la suite `erpico_debranding`).
 
 ### Tests
 - Ninguno.
+
+---
+
+## Sesión 2026-09-23 — Fase 6 cierre: docs finales + C9 fullscreen + tests CDP completados
+
+### Qué se hizo
+
+**Fase 6 documental (commit `9c359ce`, push `71e7094..9c359ce`):**
+- `spec-web-sidebar-v1.md`: §8 Milestones M0–M5 marcados ✅ con evidencia; §9 Riesgos 1–6 cerrados (xmlids/settings/SwitchCompany/iconos/debranding/dashboards verificados).
+- `Decisiones.md`: **D-26** (tokens success/danger se mantienen, decisión de cliente) y **D-27** (BUG-S-017 = fallo de entorno, no bloquea el módulo).
+- `CHANGELOG.rst`: bump a **19.0.1.0.2** + fixes S-013…S-016 + QA Fase 5.
+- `__manifest__.py`: versión `19.0.1.0.0` → `19.0.1.0.2`.
+
+**C9 Fullscreen test (`cdp/cdp_fullscreen.js`) — descubrió BUG-S-018:**
+- Camino real: `/odoo/action-567` (la única action window `target=fullscreen` del stack, *rg* "Pick a Theme" → modelo `ir.module.module` kanban). Core entra en fullscreen real (`.o_main_navbar` desaparece), pero el sidebar **seguía visible**.
+- Causa: `_onUIUpdated(env)` leía `env.mode`; OWL `EventBus.trigger(name, payload)` empaqueta el payload en `CustomEvent.detail` (owl.js:330), y el core `webclient.js` desestructura `({ detail: mode })`. `env.mode` → `undefined` → `fullscreenHidden` siempre `false` (S-011a muerto).
+- Fix: `_onUIUpdated(evt)` lee `evt.detail`, replicando el patrón del core (`if (mode !== "new") … mode === "fullscreen"`).
+- Verificado: fullscreen → sidebar `display:none` (class `o_erpico_sidebar-fullscreen-hidden`); navegar a `/odoo` → restaura. **C9 green.**
+
+**Q2 — tests CDP hover/allapps reparados:**
+- Raíz: `ElementHandle.hover({force:true})` / `.click({force:true})` fallaban ("Node is either not clickable or not an Element") por bounding box con re-render `state.ready`.
+- Fix: interacción por coordenadas reales (`getBoundingClientRect` + `page.mouse.move/click`), viewport 1600×900 explícito.
+- `cdp_hover.js` ahora **green** (flyout abre/rebota entre apps, mouseleave cierra) — C3 ya no es "por review".
+- `cdp_allapps.js` ahora **green** (13 apps, 0 sin icono, cierra al clic, rail 11 apps + footer = 12 total).
+- Nota C6: rail=11 apps porque `website_sale.menu_ecommerce` (13º del APP_MAP) no es menú raíz en `load_menus` — consistente con S-008.
+
+**Regresión CDP completa tras fix S-018:** smoke, drawer, settings, drawer_nav, layout, matrix → todos verdes.
+
+### Archivos modificados
+- `static/src/sidebar/sidebar.js` — fix `_onUIUpdated` (BUG-S-018)
+- `cdp/cdp_fullscreen.js` — nuevo (C9 / S-011a / S-018)
+- `cdp/cdp_hover.js`, `cdp/cdp_allapps.js` — interacción por coordenadas reales
+- `specs/Bugs.md` — BUG-S-018 resuelto
+- `specs/TESTS_COVERAGE.md` — C3/C6/C9 actualizados a ✅, §2A con cdp_fullscreen
+- `specs/Changelog.md`, `specs/Decisiones.md` (D-26, D-27), `specs/spec-web-sidebar-v1.md`, `readme/CHANGELOG.rst`, `__manifest__.py` — cierre Fase 6
+
+### Estado al cierre
+- Fases 0–6 completas. Tests CDP: **C1–C12 verdes**. Bugs S-001…S-018 resueltos. S-017 documentado (entorno, rama debranding).
+- Working tree limpio tras commit + push (9c359ce).

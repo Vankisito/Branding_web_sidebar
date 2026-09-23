@@ -4,7 +4,7 @@
 > `sidebar_test` funcionando y bugs críticos S-001/S-002/S-003 resueltos con
 > evidencia CDP.
 >
-> **Última actualización:** 2026-09-23 — Fase 5 CDP + matriz manual + regresión debranding ejecutadas. Bugs S-001…S-016 resueltos. Hallazgo BUG-S-017: regresión debranding falla 3/22 por **entorno/build** (reproducible sin sidebar; NO es del módulo). Matriz manual vía CDP: admin/ventas/basic, drawer + SwitchCompany, teclado, landing D-24 ✅. Pendiente C9 (fullscreen report) y Fase 6 docs finales.
+> **Última actualización:** 2026-09-23 — Fase 5+6 completa. Tests CDP C1–C12 verdes (incl. **C3 hover** y **C9 fullscreen** ahora por coordenadas reales `page.mouse`). Bugs S-001…S-018 resueltos (S-018 descubierto en C9: `_onUIUpdated` leía `env.mode`, OWL entrega payload en `event.detail`; corregido y re-verificado). BUG-S-017: regresión debranding falla 3/22 por entorno/build (NO es del módulo; Fase 6 cerrada, push `9c359ce`).
 
 ---
 
@@ -39,13 +39,13 @@ Edge headless + CDP contra `http://localhost:8071` (patrón validado en
 |---|---|---|---|
 | C1 | Login admin → `/odoo` → **0 errores de consola** | S-001, S-002, S-003, crash de assets | ✅ CDP: 0 errores, `/odoo/dashboards?dashboard_id=3` |
 | C2 | Rail visible con apps del `APP_MAP` (D-20) | S-001, S-008 | ✅ 12 botones, navbar presente |
-| C3 | Hover rail → flyout abre con submenús reales | M2 / D-13 | ⚠️ Fix S-014 aplicado (cancela timer en `hoverApp`); automatización hover limitada por Puppeteer |
+| C3 | Hover rail → flyout abre con submenús reales | M2 / D-13 | ✅ CDP: cdp_hover.js — hover por coordenadas (`getBoundingClientRect` + `page.mouse.move`); S-014 sin race |
 | C4 | Clic submenú → navega (cambio de vista) | D-13 | ✅ CDP: cdp_drawer_nav.js — clic app drawer navega y cierra drawer (S-013) |
 | C5 | Landing admin = Dashboards; no-admin = default | S-002 / D-10 | ✅ CDP: `/odoo/dashboards?dashboard_id=3` |
 | C6 | Dump `menuService.getApps()` → xmlids confirmados | D-20 (provisionales) | ✅ todos confirmados (ver D-20) |
 | C7 | Viewport 375px → toggle → drawer abre; backdrop/Escape cierran | S-004, S-005 | ✅ CDP: toggle ✓, drawer ✓, backdrop ✓, Escape ✓ |
 | C8 | Footer: Ajustes navega; SwitchCompanyMenu abre dropdown | S-006, S-007 / D-15 | ✅ URL → `/odoo/settings`, dropdown presente |
-| C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ⏳ CDP (requiere fullscreen report) |
+| C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ✅ CDP: cdp_fullscreen.js — `/odoo/action-567` (action window `target=fullscreen` real, rg "Pick a Theme") → sidebar `display:none` (class fullscreen-hidden); navegar a `/odoo` restaura. Descubrió y corrigió S-018 |
 | C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ✅ navbar renderiza; resto visual → manual |
 | C11 | Drawer cierra al navegar (app/submenu) | S-013 | ✅ CDP: cdp_drawer_nav.js |
 | C12 | Margin-left contenido no se acumula con rail | R2 | ✅ CDP: cdp_layout.js — sin acumulación (nota: sidebar `display:none` a 1024px es del entorno Odoo, no del módulo) |
@@ -57,10 +57,11 @@ Scripts en `cdp/`:
 - `cdp_drawer.js` — viewport 375px → toggle/backdrop/Escape (C7) ✅
 - `cdp_settings.js` — BUG-S-012: Ajustes navega en móvil (C8) ✅
 - `cdp_drawer_nav.js` — drawer cierra al navegar (C11 / S-013) ✅
-- `cdp_hover.js` — hover flyout estable (C3 / S-014) ⚠️ fix verificado por review; menu hover del rail no automatizable de forma fiable en Puppeteer 25 (`hover`/`mouse.move` sobre botón re-renderizado con `state.ready`)
+- `cdp_hover.js` — hover flyout estable por coordenadas reales (C3 / S-014) ✅
 - `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto)
-- `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra ⚠️ misma limitación Puppeteer para click tras re-render
+- `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra por coordenadas (C6) ✅
 - `cdp_matrix.js` — matriz manual automatizada: admin/ventas/basic landing + rail, drawer + SwitchCompany + Escape, teclado ✅
+- `cdp_fullscreen.js` — fullscreen action real → sidebar oculta/restaura + navbar core (C9 / S-011a / S-018) ✅
 
 Ejecución:
 ```bash
@@ -69,9 +70,10 @@ node cdp/cdp_smoke.js
 node cdp/cdp_drawer.js
 node cdp/cdp_settings.js
 node cdp/cdp_drawer_nav.js
-node cdp/cdp_hover.js   # S-014 fix by review; hover unreliable
+node cdp/cdp_hover.js   # C3 / S-014
 node cdp/cdp_layout.js  # R2
-node cdp/cdp_allapps.js # allApps panel
+node cdp/cdp_allapps.js # C6 allApps panel
+node cdp/cdp_fullscreen.js # C9 / S-011a / S-018
 node cdp/cdp_matrix.js  # matriz manual (admin/ventas/basic)
 ```
 

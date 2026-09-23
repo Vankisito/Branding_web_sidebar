@@ -70,6 +70,7 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 | BUG-S-014 | 2026-09-23 | Hover flyout race condition | `hoverApp()` no cancela timer de `clearHover` (180ms). Solución: `hoverApp()` cancela timer pendiente antes de setear flyoutApp. | ✅ Fix aplicado en sidebar.js |
 | BUG-S-015 | 2026-09-23 | `toggleDrawer()` código muerto y contradictorio | `toggleDrawer()` toggla `drawerOpen` y triggerea bus que fuerza `true`. Dead code, nadie lo llama. | ✅ Eliminado de sidebar.js |
 | BUG-S-016 | 2026-09-23 | Listener `MENUS:APP-CHANGED` sin cleanup | `setup()` lo agregó, `onWillUnmount` nunca lo removió. Solución: removido de setup. | ✅ Cleanup aplicado |
+| BUG-S-018 | 2026-09-23 | Fullscreen-hide (S-011a) nunca se activaba | `_onUIUpdated(env)` leía `env.mode`, pero OWL `EventBus.trigger` empaqueta el payload del evento `ACTION_MANAGER:UI-UPDATED` en `event.detail` (el core webclient.js lo desestructura `{detail: mode}`). `env.mode` → `undefined` → `fullscreenHidden` siempre `false`; el sidebar quedaba visible en modo fullscreen. Solución: `_onUIUpdated(evt)` lee `evt.detail` (patrón del core). | ✅ cdp_fullscreen.js: `/odoo/action-567` (target fullscreen real) → sidebar `display:none`; restaura al navegar |
 
 ---
 

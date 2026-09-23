@@ -6,15 +6,25 @@ const ADMIN_PASSWORD = 'admin';
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+async function mouseCenter(page, handle) {
+    const box = await handle.boundingBox();
+    if (!box) return null;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    return { x, y };
+}
+
 async function main() {
     console.log('=== CDP Hover Test (BUG-S-014) ===');
     console.log('');
 
     const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1024,768']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1600,900']
     });
     const page = await browser.newPage();
+    await page.setViewport({ width: 1600, height: 900 });
     const errors = [];
 
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
@@ -31,55 +41,53 @@ async function main() {
         await sleep(3000);
 
         await page.goto('http://localhost:8071/odoo', { waitUntil: 'networkidle0', timeout: 30000 });
-        await sleep(4000);
+        await sleep(5000);
 
-        // Esperar que el rail esté montado (state.ready)
         await page.waitForSelector('.o_erpico_rail_btn', { timeout: 15000 });
         console.log('[H1] Login OK, rail renderizado (state.ready)');
 
-        // Obtener el primer botón rail
-        const firstRailBtn = await page.$('.o_erpico_rail_btn');
-        if (!firstRailBtn) {
-            console.log('  ❌ No hay botones rail');
-            errors.push('No rail buttons');
-        } else {
-            const btnTitle = await page.evaluate(el => el.getAttribute('title'), firstRailBtn);
-            console.log(`  [H2] Primer botón: "${btnTitle}"`);
+        const allBtns = await page.$$('.o_erpico_rail_apps .o_erpico_rail_btn');
+        console.log(`  [H1] Botones rail: ${allBtns.length}`);
+        if (allBtns.length < 2) { errors.push('Rail insuficiente (<2 botones)'); }
 
-            // Hover con force: true (evita "not clickable")
-            await firstRailBtn.hover({ force: true });
+        // H1.5 mouse fuera del rail para estado limpio
+        await page.mouse.move(0, 0);
+        await sleep(300);
+
+        const firstBtn = allBtns[0];
+        const firstTitle = await page.evaluate(el => el.getAttribute('title'), firstBtn);
+        const c1 = await mouseCenter(page, firstBtn);
+        console.log(`  [H2] Hover "${firstTitle}" (coords ${Math.round(c1.x)},${Math.round(c1.y)})`);
+        await sleep(800);
+        const flyout = await page.$('.o_erpico_flyout');
+        const flyoutVisible = flyout && (await flyout.evaluate(el => getComputedStyle(el).display !== 'none'));
+        console.log(`  [H3] Flyout tras hover: ${flyoutVisible ? 'visible' : 'NO visible'}`);
+        if (!flyoutVisible) errors.push(`Flyout not visible after hover ${firstTitle}`);
+
+        // Test S-014: transición rápida botón1 → botón2 → flyout debe re-renderizar y quedarse
+        if (allBtns.length >= 2) {
+            const secondBtn = allBtns[1];
+            const secondTitle = await page.evaluate(el => el.getAttribute('title'), secondBtn);
+            await mouseCenter(page, secondBtn);
             await sleep(800);
-            const flyout = await page.$('.o_erpico_flyout');
-            console.log(`  [H3] Hover "${btnTitle}" → flyout ${flyout ? 'visible' : 'NO visible'}`);
-            if (!flyout) errors.push(`Flyout not visible after hover ${btnTitle}`);
+            const flyout2 = await page.$('.o_erpico_flyout');
+            const flyout2Visible = flyout2 && (await flyout2.evaluate(el => getComputedStyle(el).display !== 'none'));
+            console.log(`  [H4] Hover "${secondTitle}" → flyout ${flyout2Visible ? 'visible' : 'NO visible'}`);
+            if (!flyout2Visible) errors.push('BUG-S-014: flyout no visible en transición rápida');
 
-            // Obtener segundo botón
-            const allBtns = await page.$$('.o_erpico_rail_btn');
-            if (allBtns.length >= 2) {
-                const secondBtn = allBtns[1];
-                const secondTitle = await page.evaluate(el => el.getAttribute('title'), secondBtn);
+            await sleep(600);
+            const flyout2After = await page.$('.o_erpico_flyout');
+            const flyout2AfterVisible = flyout2After && (await flyout2After.evaluate(el => getComputedStyle(el).display !== 'none'));
+            console.log(`  [H5] +600ms → flyout ${flyout2AfterVisible ? 'sigue visible (FIX OK)' : 'cerrado (BUG)'}`);
+            if (!flyout2AfterVisible) errors.push('BUG-S-014: flyout se cierra en transición rápida');
 
-                // Test: hover rápido al segundo botón (force)
-                await secondBtn.hover({ force: true });
-                await sleep(800);
-                const flyout2 = await page.$('.o_erpico_flyout');
-                console.log(`  [H4] Hover "${secondTitle}" inmediatamente → flyout ${flyout2 ? 'visible' : 'NO visible'}`);
-
-                // Esperar y verificar que flyout permanece (el fix cancela timer)
-                await sleep(600);
-                const flyout2After = await page.$('.o_erpico_flyout');
-                console.log(`  [H5] Después de 600ms → flyout ${flyout2After ? 'visible (FIX OK)' : 'cerrado (BUG)'}`);
-                if (!flyout2After) errors.push('BUG-S-014: flyout se cierra en transición rápida');
-
-                // Test: mouseleave + mouseenter rápido (force hover)
-                await page.mouse.move(0, 0);
-                await sleep(200);
-                await secondBtn.hover({ force: true });
-                await sleep(800);
-                const flyout3 = await page.$('.o_erpico_flyout');
-                console.log(`  [H6] mouseleave+hover rápido → flyout ${flyout3 ? 'visible (FIX OK)' : 'NO visible (BUG-S-014)'}`);
-                if (!flyout3) errors.push('BUG-S-014: flyout cierra en transición rápida');
-            }
+            // mouseleave (sacando mouse del rail) → flyout debe cerrarse tras debounce
+            await page.mouse.move(0, 0);
+            await sleep(500);
+            const flyout3 = await page.$('.o_erpico_flyout');
+            const flyout3Visible = flyout3 && (await flyout3.evaluate(el => el.offsetParent !== null && getComputedStyle(el).display !== 'none'));
+            console.log(`  [H6] mouseleave +500ms → flyout ${flyout3Visible ? 'sigue (BUG)' : 'cerrado (OK)'}`);
+            if (flyout3Visible) errors.push('Flyout no cierra tras mouseleave');
         }
 
         console.log('');

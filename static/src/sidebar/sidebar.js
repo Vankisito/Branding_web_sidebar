@@ -100,9 +100,12 @@ export class Sidebar extends Component {
         this.state.activeAppId = this._currentAppId();
     }
 
-    _onUIUpdated(env) {
+    _onUIUpdated(evt) {
         if (!this.state) return;
-        this.state.fullscreenHidden = env && env.mode === "fullscreen";
+        const mode = evt && evt.detail;
+        if (mode !== "new") {
+            this.state.fullscreenHidden = mode === "fullscreen";
+        }
     }
 
     _onKeyDown(ev) {
