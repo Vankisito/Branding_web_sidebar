@@ -166,6 +166,11 @@ anteriores.
 - [ ] CDP: 0 errores, todos los ítems anteriores ✅
 - [ ] Matriz manual firmada
 - [ ] Suite debranding verde en `sidebar_test`
+- [x] Scripts CDP creados (`cdp/cdp_smoke.js`, `cdp/cdp_drawer.js`, `cdp/cdp_settings.js`) — pendientes de ejecución (Docker Desktop)
+
+---
+
+### Fase 6 — Cierre documental + commits
 
 ---
 
