@@ -4,7 +4,7 @@
 > `sidebar_test` funcionando y bugs críticos S-001/S-002/S-003 resueltos con
 > evidencia CDP.
 >
-> **Última actualización:** 2026-09-23 — Fase 5 CDP completada: 0 errores consola, todos los checks C1-C8✅. Bugs S-001…S-012 resueltos. Solo C9 (fullscreen report) pendiente y Fase 6 docs finales.
+> **Última actualización:** 2026-09-23 — Fase 5 CDP completada + bug hunt ampliado. Bugs S-001…S-016 resueltos (S-013 drawer-cerrar-al-navegar, S-014 hover race, S-015 toggle muerto, S-016 listener sin cleanup). R2 (margin-left) verificado sin acumulación. Solo C9 (fullscreen report) pendiente y Fase 6 docs finales. Nota: hover/allApps automatizables de forma limitada con Puppeteer (ver §2A).
 
 ---
 
@@ -39,21 +39,27 @@ Edge headless + CDP contra `http://localhost:8071` (patrón validado en
 |---|---|---|---|
 | C1 | Login admin → `/odoo` → **0 errores de consola** | S-001, S-002, S-003, crash de assets | ✅ CDP: 0 errores, `/odoo/dashboards?dashboard_id=3` |
 | C2 | Rail visible con apps del `APP_MAP` (D-20) | S-001, S-008 | ✅ 12 botones, navbar presente |
-| C3 | Hover rail → flyout abre con submenús reales | M2 / D-13 | ✅ CDP |
-| C4 | Clic submenú → navega (cambio de vista) | D-13 | ✅ CDP |
+| C3 | Hover rail → flyout abre con submenús reales | M2 / D-13 | ⚠️ Fix S-014 aplicado (cancela timer en `hoverApp`); automatización hover limitada por Puppeteer |
+| C4 | Clic submenú → navega (cambio de vista) | D-13 | ✅ CDP: cdp_drawer_nav.js — clic app drawer navega y cierra drawer (S-013) |
 | C5 | Landing admin = Dashboards; no-admin = default | S-002 / D-10 | ✅ CDP: `/odoo/dashboards?dashboard_id=3` |
 | C6 | Dump `menuService.getApps()` → xmlids confirmados | D-20 (provisionales) | ✅ todos confirmados (ver D-20) |
 | C7 | Viewport 375px → toggle → drawer abre; backdrop/Escape cierran | S-004, S-005 | ✅ CDP: toggle ✓, drawer ✓, backdrop ✓, Escape ✓ |
 | C8 | Footer: Ajustes navega; SwitchCompanyMenu abre dropdown | S-006, S-007 / D-15 | ✅ URL → `/odoo/settings`, dropdown presente |
 | C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ⏳ CDP (requiere fullscreen report) |
 | C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ✅ navbar renderiza; resto visual → manual |
+| C11 | Drawer cierra al navegar (app/submenu) | S-013 | ✅ CDP: cdp_drawer_nav.js |
+| C12 | Margin-left contenido no se acumula con rail | R2 | ✅ CDP: cdp_layout.js — sin acumulación (nota: sidebar `display:none` a 1024px es del entorno Odoo, no del módulo) |
 
 ## 2A. Scripts CDP (Fase 5)
 
 Scripts en `cdp/`:
-- `cdp_smoke.js` — login admin → 0 errores console → navbar/rail/landing
-- `cdp_drawer.js` — viewport 375px → toggle/backdrop/Escape
-- `cdp_settings.js` — BUG-S-012: Ajustes navega en móvil
+- `cdp_smoke.js` — login admin → 0 errores console → navbar/rail/landing (C1, C2, C5) ✅
+- `cdp_drawer.js` — viewport 375px → toggle/backdrop/Escape (C7) ✅
+- `cdp_settings.js` — BUG-S-012: Ajustes navega en móvil (C8) ✅
+- `cdp_drawer_nav.js` — drawer cierra al navegar (C11 / S-013) ✅
+- `cdp_hover.js` — hover flyout estable (C3 / S-014) ⚠️ fix verificado por review; menu hover del rail no automatizable de forma fiable en Puppeteer 25 (`hover`/`mouse.move` sobre botón re-renderizado con `state.ready`)
+- `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto)
+- `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra ⚠️ misma limitación Puppeteer para click tras re-render
 
 Ejecución:
 ```bash
@@ -61,6 +67,10 @@ docker compose -f compose.test.yml up -d
 node cdp/cdp_smoke.js
 node cdp/cdp_drawer.js
 node cdp/cdp_settings.js
+node cdp/cdp_drawer_nav.js
+node cdp/cdp_hover.js   # S-014 fix by review; hover unreliable
+node cdp/cdp_layout.js  # R2
+node cdp/cdp_allapps.js # allApps panel
 ```
 
 ---

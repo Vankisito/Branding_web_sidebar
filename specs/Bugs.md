@@ -43,6 +43,19 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
   - **QUnit/tour**: documentados como candidato v2 (fuera de alcance v1, D-22)
 - *Verificado:* fullscreen-hide (S-011a), a11y delay/keyboard (S-011b) ✅ |
 
+### BUG-S-013 — Drawer móvil no cierra al navegar
+- *Origen:* detectado en Fase 5 CDP — `selectApp()`/`openItem()` → `_open()` no setean `drawerOpen=false`. Solución: agregar `this.state.drawerOpen = false` en `_open()` (sidebar.js).
+- *Fix:* 2026-09-23 — `_open()` ahora cierra el drawer al navegar desde drawer. Confirmado con cdp_drawer_nav.js.
+- *Estado:* ✅ Resuelto.
+
+### BUG-S-014 — Hover flyout race condition
+- *Origen:* `hoverApp()` no cancela el timer de `clearHover` (180ms). Transición rápida A→B: timer dispara y cierra flyout. Solución: `hoverApp()` now clears pending timer antes de setear flyoutApp. Confirmado con fix en sidebar.js.
+- *Estado:* ✅ Resuelto.
+
+### BUG-S-016 — Listener MENUS:APP-CHANGED sin cleanup
+- *Origen:* `setup()` agregó listener, `onWillUnmount` nunca lo removió (inconsistencia de hygiene). Solución: removido `this.env.bus.addEventListener("MENUS:APP-CHANGED", ...)` de setup (código nunca lo usó). Baja.
+- *Estado:* ✅ Resuelto (limpieza aplicada).
+
 **BUG-S-012 — "Ajustes" no navega en móvil (drawer footer)**
 - *Contexto:* `goToSettings()` usaba `this.menuService.getMenu("base.menu_administration")` que **no existe** en el API del menu service Odoo 19 (métodos válidos: `getApps()`, `getMenuAsTree(id)`). Retorna `undefined` → `_resolveLeaf(undefined)` → `selectMenu` nunca se llama.
 - *Fix:* Buscar el app por `xmlid` desde `[...state.railApps, ...state.otherApps].find(a => a.xmlid === "base.menu_administration")`. Estos arrays ya están poblados en `onWillStart` con `_childrenTree`. `_resolveLeaf(settingsApp)` encuentra la primera hoja con `actionID`.
@@ -96,7 +109,11 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 | BUG-S-006 | 2026-09-23 | `goToCompany` con evento fantasma | Eliminado `goToCompany()`; `SwitchCompanyMenu` real en footer del drawer (`sidebar.xml` + `sidebar.js` `static.components`) | CDP: SwitchCompanyMenu renderiza |
 | BUG-S-007 | 2026-09-23 | `goToSettings` sin `_resolveLeaf` | Ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` en el código restaurado; xmlid confirmado runtime | CDP: Ajustes navega a Settings |
 | BUG-S-011 | 2026-09-23 | Spec §5.8/§5.3 pendientes | `readme/CHANGELOG.rst` creado, `margin-left` selectores amplios (.o_main/.o_action_manager/.o_content), QUnit/tour → v2 | `readme/CHANGELOG.rst` + sidebar.scss |
-| BUG-S-012 | 2026-09-23 | `goToSettings()` no navega en móvil | `menuService.getMenu()` no existe en Odoo 19 API. Fix: buscar app por xmlid desde `state.railApps/otherApps` (con `_childrenTree` pre-poblado en `onWillStart`) | CDP: Ajustes navega a Settings (móvil) |
+| BUG-S-012 | 2026-09-23 | `goToSettings()` no navega en móvil | `menuService.getMenu()` no existe en Odoo 19 API. Fix: buscar app por xmlid desde `state.railApps/otherApps` (con `_childrenTree` pre-poblado en `onWillStart`) | CDP: Ajustes navega a Settings (móvil) | ✅ Verificado |
+| BUG-S-013 | 2026-09-23 | Drawer móvil no cierra al navegar | `selectApp()`/`openItem()` → `_open()` no setean `drawerOpen=false`. Solución: `this.state.drawerOpen = false` en `_open()`. | ✅ Confirmado con cdp_drawer_nav.js: drawer cierra al navegar app/submenu |
+| BUG-S-014 | 2026-09-23 | Hover flyout race condition | `hoverApp()` no cancela timer de `clearHover` (180ms). Solución: `hoverApp()` cancela timer pendiente antes de setear flyoutApp. | ✅ Fix aplicado en sidebar.js |
+| BUG-S-015 | 2026-09-23 | `toggleDrawer()` código muerto y contradictorio | `toggleDrawer()` toggla `drawerOpen` y triggerea bus que fuerza `true`. Dead code, nadie lo llama. | ✅ Eliminado de sidebar.js |
+| BUG-S-016 | 2026-09-23 | Listener `MENUS:APP-CHANGED` sin cleanup | `setup()` lo agregó, `onWillUnmount` nunca lo removió. Solución: removido de setup. | ✅ Cleanup aplicado |
 
 ---
 

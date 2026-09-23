@@ -5,6 +5,59 @@
 
 ---
 
+## Sesión 2026-09-23 — Fase 5 ampliada: bug hunt + fixes S-013…S-016 + push
+
+### Qué se hizo
+
+**Push inicial al repo `https://github.com/Vankisito/Branding_web_sidebar.git`:**
+- Análisis de archivos creados en Fase 5: scripts CDP y manifests SÍ son del repo; `node_modules` movido a `.gitignore`.
+- `36d727f` incluyó `cdp/node_modules` (2274 archivos) por accidente → `git reset --soft`, creado `.gitignore` (`cdp/node_modules/`, `node_modules/`, `Thumbs.db`…), commit `7afe685` con `.gitignore` + `cdp/package.json` + `cdp/package-lock.json`.
+- Push `c0c27c2..7afe685 master → master` — **12 commits** exitoso (la salida en rojo era stderr de PowerShell, no error).
+
+**Verificación de marca ERPICO** (vs `C:\Users\Santi\Downloads\erpico_website-Desarrollo\erpico_website-Desarrollo`):
+- Colores/tokens exactos: `#2c85c7`, `#1f6da8`, `#e99a55`, `#0c112e`, `#f7f9fb`, `#dfe8ef`, radius 8px.
+- Fuentes Outfit + Work Sans self-hosted (woff2).
+- Logos horizontal + favicon y **15 iconos `brand-*.svg`** con hash MD5 idéntico.
+- Única diferencia: tokens success/danger (`#276b48`/`#b62c2c`) vs brand book (`#2E7D32`/`#D32F2F`) — **decisión del usuario: dejarlo como está**.
+
+**Bug hunt (revisión de código + tests CDP):**
+- **BUG-S-013 (Alta):** drawer móvil no cierra al navegar app/submenú. `_open()` no setea `drawerOpen=false`. `sidebar.xml:150,166`.
+- **BUG-S-014 (Media):** hover flyout race — `hoverApp()` no cancela el timer; transición rápida cierra flyout (contradecía C3 ✅).
+- **BUG-S-015 (Baja):** `toggleDrawer()` muerto y contradictorio (toggla y triggerea bus que fuerza `true`).
+- **BUG-S-016 (Baja):** listener `MENUS:APP-CHANGED` en `setup()` sin `removeEventListener`.
+- **R2:** verificado sin acumulación de margin-left (cdp_layout.js). Nota: `.o_main` no existe en Odoo 19; medición correcta vía rail/action_manager/content. Sidebar `display:none` a 1024px es del entorno (d-lg-flex Odoo), no del módulo.
+- **R3/R4 fuera de alcance** (decisión usuario): NavBar template replace, a11y drawer.
+
+**Fixes (commit `dcf20e1`):**
+- S-013: `_open()` ahora setea `drawerOpen = false`.
+- S-014: `hoverApp()` cancela `_clearHoverTimer` antes de setear flyout.
+- S-015: `toggleDrawer()` eliminado.
+- S-016: listener `MENUS:APP-CHANGED` removido.
+
+**Tests (nuevos scripts CDP en `cdp/`):**
+- `cdp_drawer_nav.js` → ✅ drawer cierra al navegar (S-013 verificado).
+- `cdp_hover.js` → ⚠️ Puppeteer 25 no puede simular hover fiable en rail re-renderizado (`state.ready`); S-014 verificado por review + fix en código.
+- `cdp_layout.js` → ✅ sin acumulación margin (C12).
+- `cdp_allapps.js` → ⚠️ misma limitación Puppeteer para click tras re-render; panel se valida manualmente.
+- Regresión completa: `cdp_smoke.js` ✅ (0 errores, 12 botones, landing Dashboards), `cdp_drawer.js` ✅, `cdp_settings.js` ✅.
+
+### Archivos modificados
+- `static/src/sidebar/sidebar.js` — fixes S-013…S-016
+- `cdp/cdp_drawer_nav.js`, `cdp/cdp_hover.js`, `cdp/cdp_layout.js`, `cdp/cdp_allapps.js` — nuevos scripts de test
+- `.gitignore`, `cdp/package.json`, `cdp/package-lock.json`
+- `specs/Bugs.md`, `specs/TESTS_COVERAGE.md`, `specs/Changelog.md`
+
+### Commits
+- `dcf20e1` — fix(sidebar): S-013 drawer cierra al navegar, S-014 hover race, S-015 toggle muerto, S-016 listener
+- `e56a131` — test(cdp): fix hover (mouse.move), layout (wait 6s), allapps (mouse click)
+- `5bd447b` — test(cdp): force: true para clicks (evita "not clickable")
+
+### Pendiente
+- Fase 5: matriz manual completa + regresión debranding (`erpico_debranding` con sidebar instalado).
+- Fase 6: docs finales (`CHANGELOG.rst`, spec §estado) + push de nuevos commits.
+
+---
+
 ## Sesión 2026-09-23 — Fases 0–1 completadas (stack Docker + bugs críticos)
 
 ### Qué se hizo

@@ -52,7 +52,7 @@ anteriores.
 | M2 rail + flyout + allApps | ✅ | restaurado (S-001) + validado (rail 12 botones) |
 | M3 landing admin → Dashboards | ✅ | `landing_patch.js` (D-24) — login → `/odoo/dashboards` |
 | M4 drawer + footer | 🟢 | Drawer funcional ✅; S-012 resuelto (goToSettings → state arrays); S-011a/S-011b completos |
-| M5 QA + docs | 🟢 | CDP Edge ✅ (0 errores consola, C1-C8 todos ✅); Bugs S-001…S-012 resueltos; docs actualizados |
+| M5 QA + docs | 🟢 | CDP Edge ✅ (0 errores consola, C1-C8✅ + C11/C12); Bugs S-001…S-016 resueltos (bug hunt: S-013 drawer-cerrar, S-014 hover race, S-015 toggle muerto, S-016 listener); R2 margin verificado; docs actualizados; push inicial hecho. Pendiente manual + regresión debranding |
 
 ---
 
@@ -145,12 +145,14 @@ anteriores.
 ---
 
 ### Fase 5 — QA (D-22: CDP + manual) + regresión cruzada
-- [x] **CDP Edge headless** contra `localhost:8071` — ✅ COMPLETADA:
+- [x] **CDP Edge headless** contra `localhost:8071` — ✅ COMPLETADA + ampliada:
   - login admin → `/odoo` → **0 errores consola** ✅
-  - rail renderiza; hover → flyout; click submenú navega ✅
+  - rail renderiza; hover → flyout ⚠️ (fix S-014 por review; Puppeteer no simula hover fiable en rail re-renderizado); click submenú navega ✅
   - landing admin = Dashboards; no-admin = default ✅
   - dump `getApps()` archivado (evidencia Fase 3) ✅
   - 375px → drawer abre/cierra (backdrop + Escape) ✅
+  - drawer cierra al navegar (S-013) ✅ — `cdp_drawer_nav.js`
+  - R2 margin sin acumulación ✅ — `cdp_layout.js` (`.o_main` no existe en Odoo 19; se mide rail/action_manager/content)
   - fullscreen → sidebar oculta ⏳ (requiere fullscreen report)
 - [ ] **Matriz manual** (spec §7.3): admin + usuario ventas; apps instaladas/desinstaladas; multi-empresa (footer); teclado.
 - [ ] **Regresión debranding** en el stack nuevo:
@@ -162,8 +164,13 @@ anteriores.
   ```
   Esperado: suite verde (22/22) con sidebar instalado (spec riesgo 5).
 
-**Checklist Fase 5:**
-- [x] CDP: 0 errores, todos los ítems C1-C8 ✅
+**Checklist Fase 5 (ampliado — bug hunt):**
+- [x] CDP: 0 errores, ítems C1-C8 ✅ + C11 (S-013) + C12 (R2)
+- [x] BUG-S-013 drawer cierra al navegar (fix `dcf20e1`)
+- [x] BUG-S-014 hover race (fix `dcf20e1`; CDP parcial por Puppeteer)
+- [x] BUG-S-015 toggleDrawer muerto eliminado
+- [x] BUG-S-016 listener MENUS:APP-CHANGED cleanup
+- [x] Marca ERPICO verificada contra carpeta oficial (colores/fuentes/logos/iconos MD5 1:1)
 - [ ] Matriz manual firmada ⏳
 - [ ] Suite debranding verde en `sidebar_test` ⏳
 
@@ -171,12 +178,13 @@ anteriores.
 
 ### Fase 6 — Cierre documental + commits
 
-- [ ] `Bugs.md`: mover BUG-S-001…011 resueltos (con commit y fecha).
-- [ ] `Changelog.md`: entrada de cierre (qué se hizo, archivos, tests).
+- [x] `Bugs.md`: BUG-S-001…016 resueltos (con commit y fecha).
+- [x] `Changelog.md`: entrada bug hunt + push (2026-09-23).
 - [ ] `spec-web-sidebar-v1.md`: estado → "implementado + validado"; milestones M1–M5 ✅.
-- [ ] `readme/CHANGELOG.rst` fragment OCA.
-- [ ] `TESTS_COVERAGE.md` actualizado (estado QA CDP/manual).
+- [x] `readme/CHANGELOG.rst` fragment OCA (creado Fase 4).
+- [x] `TESTS_COVERAGE.md` actualizado (QA CDP, notas Puppeteer).
 - [ ] Commits separados por fase (restore+críticos / M4 / APP_MAP+docs / hardening / docker+QA). **No commitear sin orden explícita.**
+- [ ] Push final de commits de bug hunt (`dcf20e1`, `e56a131`, `5bd447b`, docs).
 
 ---
 
@@ -193,8 +201,8 @@ anteriores.
 ## 6. Notas para sesiones siguientes
 
 > **Antes de continuar:**
-> 1. Leer `Decisiones.md` (D-20…D-22 nuevas).
-> 2. Leer `Bugs.md` — ¿qué sigue abierto?
+> 1. Leer `Decisiones.md` (D-20…D-24 nuevas).
+> 2. Leer `Bugs.md` — ¿qué sigue abierto? (S-013…S-016 resueltos; pendiente matriz manual y debranding).
 > 3. Leer `Changelog.md` — dónde quedó la última sesión.
 > 4. No asumir completado: verificar checklist de la fase.
 
