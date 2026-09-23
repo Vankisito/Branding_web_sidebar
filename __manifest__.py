@@ -1,6 +1,6 @@
 {
     'name': 'ERPICO Web Sidebar',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.0.2',
     'category': 'Productivity',
     'summary': 'Tiendanube-style sidebar navigation and minimal topbar for Odoo 19',
     'description': """

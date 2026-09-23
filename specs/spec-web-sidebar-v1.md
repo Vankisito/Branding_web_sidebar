@@ -297,18 +297,18 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 
 ## 8. Milestones
 
-- **M0**: skeleton módulo (manifest, readme, folders) + assets extraídos → verificación assets en `?debug=assets`.
-- **M1**: t-inherit `web.NavBar` → topbar brand + systray OK; navbar sobrante eliminada.
-- **M2**: Sidebar en `main_components` → rail + flyout + filtrado mapeo + selectMenu + "Todas las aplicaciones".
-- **M3**: patch `_loadDefaultApp` admin → Dashboards.
-- **M4**: drawer mobile + footer Ajustes/SwitchCompanyMenu + ajustes CSS de contenido/fullscreen.
-- **M5**: CDP Edge headless (smoke + drawer + settings), matriz manual, regresión debranding; docs (Bugs.md, Changelog, TESTS_COVERAGE actualizados).
+- **M0**: skeleton módulo (manifest, readme, folders) + assets extraídos → ✅ commit `7091cf9`.
+- **M1**: t-inherit `web.NavBar` → topbar brand + systray OK; navbar sobrante eliminada → ✅ validado runtime (CDP: `.o_main_navbar` presente, 0 errores).
+- **M2**: Sidebar en `main_components` → rail + flyout + filtrado mapeo + selectMenu + "Todas las aplicaciones" → ✅ restaurado (S-001) + validado (rail 12 botones).
+- **M3**: patch `_loadDefaultApp` admin → Dashboards → ✅ `landing_patch.js` (D-24) — login → `/odoo/dashboards?dashboard_id=3`.
+- **M4**: drawer mobile + footer Ajustes/SwitchCompanyMenu + ajustes CSS de contenido/fullscreen → ✅ drawer funcional, S-012/S-013 resueltos, SwitchCompany renderiza.
+- **M5**: CDP Edge headless (smoke + drawer + settings), matriz manual, regresión debranding; docs (Bugs.md, Changelog, TESTS_COVERAGE actualizados) → ✅ Fase 5 completa: C1-C8 + C11/C12, matriz CDP, regresión documentada (BUG-S-017 no bloquea). Pendiente: C9 fullscreen.
 
 ## 9. Riesgos / puntos abiertos
 
-1. **xmlids de menús root** (contacts, website, website_sale, account, pos) provisorios → dump real en build.
-2. Ajustes: confirmar acción/menú settings exacto (community).
-3. `SwitchCompanyMenu` en rail footer: verificar props/estado requeridos (puede requerir wrapper).
-4. Iconos Contactos/Sitio web sin brand → ¿jefe provee? (alternativa: `i-building`/`i-globe`).
-5. Fusión con `erpico_debranding`: el sidebar aplica a TODO el backend; debranding (bot/banner) no interfiere, pero re-validar juntos.
-6. Menú root de Dashboards en EDITION community vs enterprise (`spreadsheet_dashboard` es community; verificar BD test).
+1. ~~xmlids de menús root (contacts, website, website_sale, account, pos) provisorios~~ → ✅ confirmados runtime (D-20, Fase 3 CDP).
+2. ~~Ajustes: confirmar acción/menú settings exacto (community)~~ → ✅ `base.menu_administration` root; navegación S-012 resuelta.
+3. ~~`SwitchCompanyMenu` en rail footer~~ → ✅ renderiza como `.o-dropdown` nativo (cdp_matrix/drawer).
+4. ~~Iconos Contactos/Sitio web sin brand~~ → ✅ brand + `i-building`/`i-globe`/ico `webIconData` fallback definido (D-11); Contactos usa brand.
+5. Fusión con `erpico_debranding` → ✅ regresión ejecutada (BUG-S-017): el sidebar **no interfiere**; fallos de la suite son preexistentes del build/local (assets frontend + `sale_order.picking_policy`).
+6. ~~Menú root de Dashboards community vs enterprise~~ → ✅ `spreadsheet_dashboard` community instalado y verificado (landing + rail).

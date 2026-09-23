@@ -204,3 +204,31 @@
 - El repo `Branding_web_sidebar` contiene SOLO el módulo (JS/XML/SCSS/manifest) + `specs/` (documentación de desarrollo).
 - El stack de test (`compose.test.yml` + `Dockerfile`) vive en el proyecto de desarrollo, fuera del repo del módulo.
 - `mass_mailing` es dependencia del compose.test.yml (QA), NO del `__manifest__.py`.
+
+---
+
+## D-26 — Tokens success/danger: mantener valores propios (2026-09-23)
+
+**Fecha:** 2026-09-23
+**Decidido por:** cliente (jefe)
+
+**Decisión:** Los tokens `--success` (`#276b48`) y `--danger` (`#b62c2c`) del `sidebar.scss` **se mantienen** aunque difieran del brand book oficial de erpico_website (`#2E7D32` / `#D32F2F`).
+
+**Por qué:** comparativa MD5 de los assets de marca (colores principales, fuentes Outfit/Work Sans, logos, favicon y 15 iconos `brand-*.svg`) dio **1:1 exacto** contra `C:\Users\Santi\Downloads\erpico_website-Desarrollo`. Solo success/danger difieren y la diferencia es menor; el usuario decidió no alinear los tokens (los componentes actuales no los usan a nivel visible).
+
+**Consecuencias:**
+- No requiere cambio de tokens.
+- Si en v2 se despliegan elementos con semántica success/danger críticos, alinear con brand book antes de visual.
+
+---
+
+## D-27 — BUG-S-017 (regresión debranding): fallo de entorno, no bloquea el módulo
+
+**Fecha:** 2026-09-23
+**Decidido por:** arquitecto (Hábitat Digital)
+
+**Decisión:** La suite `erpico_debranding` falla **3 de 22** en el stack `sidebar_test`, pero los 3 fallos se reproducen idénticamente **sin** `erpico_web_sidebar` instalado (baseline BD `sidebar_baseline` = clon + módulo desinstalado). Son **preexistentes del build Odoo 19 (20260908)**:
+1. `test_login_debranded` y `test_purchase_order_portal`: `QWebError Unallowed to fetch files from addon website/website_sale … Addon not installed` — check del compilador de assets frontend.
+2. `test_sale_order_portal`: `NotNullViolation sale_order.picking_policy` — campo nuevo requerido que el test de la rama debranding no provee.
+
+**Por qué / consecuencia:** `erpico_web_sidebar` solo inyecta `web.assets_backend`; no participa en frontend ni modelos `sale`. El riesgo 5 de la spec (sidebar no rompe debranding) queda **verificado**. BUG-S-017 queda documentado (Bugs.md) y la remediación corresponde a la rama `erpico_debranding`.
