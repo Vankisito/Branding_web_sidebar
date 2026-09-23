@@ -158,7 +158,7 @@
                                 </t>
                                 <span t-esc="app.name" />
                             </button>
-                            <ul t-if="app._childrenTree && app._childrenTree.length" class="o_erpico_drawer_sub">
+                            <ul t-if="app._childrenTree &amp;&amp; app._childrenTree.length" class="o_erpico_drawer_sub">
                                 <t t-foreach="app._childrenTree" t-as="child" t-key="child.id">
                                     <li
                                         t-att-class="{ 'o_active': state.activeAppId === child.id }"
