@@ -18,7 +18,7 @@ services:
       - ../erpico_debranding_sale:/mnt/extra-addons/erpico_debranding_sale
       - .:/mnt/extra-addons/erpico_web_sidebar
       - odoo_sidebar_data:/var/lib/odoo
-    command: odoo --addons-path=/mnt/extra-addons -d sidebar_test -i erpico_debranding,erpico_debranding_pos,erpico_debranding_sale,erpico_web_sidebar,mass_mailing
+    command: odoo --addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons -d sidebar_test -i erpico_debranding,erpico_debranding_pos,erpico_debranding_sale,erpico_web_sidebar,mass_mailing
     environment:
       - HOST=db_sidebar_test
       - USER=odoo
