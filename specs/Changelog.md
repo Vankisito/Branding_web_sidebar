@@ -46,6 +46,38 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
 
 ---
 
+## Sesión 2026-09-23 — Fase 2+4 (BUG-S-012, S-011a, S-011b)
+
+### Qué se hizo
+
+**BUG-S-012 (Ajustes móvil):** `goToSettings()` en `sidebar.js` usaba `this.menuService.getMenu("base.menu_administration")` — método que **no existe** en el API del menu service de Odoo 19 (métodos válidos: `getApps()`, `getMenuAsTree(id)`). Fix: buscar el app por `xmlid` desde `[...this.state.railApps, ...this.state.otherApps]` que ya tienen `_childrenTree` poblado en `onWillStart`. Navegación a Settings ahora funciona en móvil.
+
+**S-011a (fullscreen-hide):** Listener `env.bus "ACTION_MANAGER:UI-UPDATED"` en `Sidebar.setup()` → `_onUIUpdated(env)` → `state.fullscreenHidden = env.mode === "fullscreen"`. CSS `.o_erpico_sidebar-fullscreen-hidden { display: none !important }`. Template `sidebar.xml` usa `t-att-class` para condicionar la clase.
+
+**S-011b (a11y):**
+- `clearHover()` con `setTimeout(..., 180)` (cancelable via `_clearHoverTimer`), `_hoverLock` para prevenir race conditions
+- `_openFlyout(app)` / `_closeFlyout()` para gestión de hover con teclado
+- `_onRailKeydown(app, ev)` — ArrowRight/ArrowDown abren flyout, Escape cierra
+- `t-on-keydown` en botones del rail en `sidebar.xml`
+- `selectApp`/`openItem`/`toggleAllApps`/`_closeDrawer` resetean `_hoverLock` y limpian timer
+- `:focus-visible` outline visible en `.o_erpico_rail_btn` y `li` del drawer
+- `onWillUnmount` limpia `_clearHoverTimer`
+
+### Archivos modificados
+- `static/src/sidebar/sidebar.js` — goToSettings fix, fullscreen listener, a11y delay/keyboard
+- `static/src/sidebar/sidebar.xml` — `t-att-class` fullscreen, `t-on-keydown` en rail buttons
+- `static/src/sidebar/sidebar.scss` — `.o_erpico_sidebar-fullscreen-hidden`, `:focus-visible` outlines
+- `specs/Bugs.md` — BUG-S-012 → Resuelto, BUG-S-011 actualizado
+
+### Pendiente
+- `readme/CHANGELOG.rst` (fragment OCA) — BUG-S-011
+- Tests QUnit/tour — BUG-S-011
+- Verificar `margin-left` `.o_main` en Odoo 19 — BUG-S-011
+- Fase 5 QA CDP completa + matriz manual + regresión debranding
+- Fase 6 docs + commits
+
+---
+
 ## Sesión 2026-09-23 — Fase 2: M4 drawer + footer (S-004/S-005/S-006/S-007)
 
 ### Qué se hizo

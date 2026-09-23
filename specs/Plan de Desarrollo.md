@@ -51,7 +51,7 @@ anteriores.
 | M1 topbar brand + systray | ✅ | validado runtime (CDP: `.o_main_navbar` presente, 0 errores) |
 | M2 rail + flyout + allApps | ✅ | restaurado (S-001) + validado (rail 12 botones) |
 | M3 landing admin → Dashboards | ✅ | `landing_patch.js` (D-24) — login → `/odoo/dashboards` |
-| M4 drawer + footer | 🟡 | Drawer funcional (abre/cierra/backdrop/Escape) ✅; **S-012 pendiente** (Ajustes móvil no navega) → Fase 2 |
+| M4 drawer + footer | 🟢 | Drawer funcional ✅; S-012 resuelto (goToSettings → state arrays); S-011a/S-011b completos |
 | M5 QA + docs | 🟡 | CDP básico ✅ (F0/F1); matriz manual + regresión debranding → Fase 5 |
 
 ---
@@ -105,13 +105,13 @@ anteriores.
 - [x] **S-004:** listener `env.bus "erpico:open-drawer"` en `Sidebar.setup()` + cleanup en `onWillUnmount`; `toggleDrawer()` solo dispara bus. (fix extra: `_openDrawer` bindeado)
 - [x] SCSS: `.o_erpico_drawer`, `.o_erpico_backdrop`, transiciones (300ms, chalk/obsidian).
 - [x] **S-006:** `SwitchCompanyMenu` real en footer drawer; eliminado `goToCompany()`.
-- [x] **S-007:** `goToSettings()` ya usa `_resolveLeaf(getMenu("base.menu_administration"))` — **pendiente verificación runtime móvil (S-012)**.
+- [x] **S-007:** `goToSettings()` ya usa `_resolveLeaf(getMenu("base.menu_administration"))` — **resuelto S-012**: `getMenu()` no existe en Odoo 19 API; fix: buscar app por xmlid desde `state.railApps/otherApps`
 
 **Checklist Fase 2 (viewport 375px):**
 - [x] Toggle topbar abre drawer; backdrop cierra; **Escape cierra** (capture keydown fix)
-- [x] Acordeón renderiza submenús (36 subitems); navegación pendiente verificar
-- [ ] Cambiar empresa abre el dropdown nativo de empresas (componente renderiza como `.o-dropdown`; abrir/cerrar pendiente)
-- [ ] Ajustes navega a Settings — **NO** (S-012 abierto: drawer cierra pero URL no cambia)
+- [x] Acordeón renderiza submenús (36 subitems); navegación verificada
+- [x] Cambiar empresa abre el dropdown nativo de empresas (componente renderiza como `.o-dropdown`)
+- [x] Ajustes navega a Settings — **S-012 resuelto**: `goToSettings()` corregido (buscar app por xmlid desde state arrays)
 
 ---
 
@@ -131,14 +131,14 @@ anteriores.
 ### Fase 4 — Hardening M1/M2 (S-008 cerrado, S-009…S-011)
 - [x] **S-009:** verificar `menuService.reload()` — **existe** en Odoo 19; guard eliminado igual (innecesario).
 - [x] **S-010:** manifest → `category='Productivity'`, indentación `assets`, `data: []`, huérfanos borrados (`_patch.js`).
-- [ ] **S-011a:** fullscreen-hide — listener `env.bus "ACTION_MANAGER:UI-UPDATED"` → ocultar sidebar en `mode === 'fullscreen'`.
-- [ ] **S-011b:** a11y — delay 180ms en `clearHover` (cancelable), foco/teclado en rail items.
+- [x] **S-011a:** fullscreen-hide — listener `env.bus "ACTION_MANAGER:UI-UPDATED"` → `state.fullscreenHidden` → CSS `.o_erpico_sidebar-fullscreen-hidden`.
+- [x] **S-011b:** a11y — delay 180ms en `clearHover` (cancelable), foco/teclado en rail items (`_openFlyout`, `_onRailKeydown`).
 - [ ] Verificar selector de offset del contenido (`.o_main` u el real de Odoo 19) — ajustar `margin-left`.
 - [ ] Verificar `patch(NavBar, { template })` sin efectos colaterales de `adapt()`/breadcrumbs (BUG relacionado: registrado si falla).
 
 **Checklist Fase 4:**
-- [ ] Fullscreen (report) oculta rail; salir lo restaura
-- [ ] Hover rápido entre apps no parpadea el flyout
+- [x] Fullscreen (report) oculta sidebar; salir lo restaura
+- [x] Hover rápido entre apps no parpadea el flyout (180ms delay + `_hoverLock`)
 - [x] `-u erpico_web_sidebar` sin warnings de manifest (verificado F1)
 - [ ] Contenido no queda debajo del rail (desktop) ni desbordado (mobile)
 

@@ -32,15 +32,14 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 
 | ID | Fecha | Vista / Origen | Descripción | Tipo | Prioridad | Estado |
 |----|-------|----------------|-------------|------|-----------|--------|
-| BUG-S-012 | 2026-09-23 | Footer drawer → "Ajustes" (móvil) | En viewport 375px, click `Ajustes` cierra el drawer pero **no navega**: URL queda en `/odoo/dashboards?dashboard_id=3`, body casi vacío (43 chars). Pendiente investigar: `goToSettings()` corre (drawer cierra) pero `selectMenu(leaf)` no cambia la vista. Falta verificar resolución de `getMenu("base.menu_administration")` y `_resolveLeaf` en runtime móvil. | Lógica | 🟠 Alta | Abierto |
 | BUG-S-011 | 2026-09-23 | Spec §5.8 / §5.3 pendientes | Falta: fullscreen-hide (`ACTION_MANAGER:UI-UPDATED`), delay 180ms de cierre de flyout, a11y teclado (flechas), tests QUnit/tour, `readme/CHANGELOG.rst` (fragment OCA). Verificar selector de `margin-left` del contenido (`.o_main`) en Odoo 19. | UI/UX | ⚪ Baja | Abierto |
 
 ### Detalle de bugs abiertos
 
 **BUG-S-012 — "Ajustes" no navega en móvil (drawer footer)**
-- *Contexto:* `goToSettings()` usa `_resolveLeaf(getMenu("base.menu_administration"))` + `selectMenu(leaf)`. Desktop F1 se dio por resuelto por inspección de código, pero runtime móvil (375px) muestra que el drawer cierra → la función corre → pero la URL no cambia y body queda casi vacío.
-- *Hipótesis:* (a) `getMenu("base.menu_administration")` devuelve null en móvil; (b) `_resolveLeaf` devuelve menú sin `actionID`; (c) `selectMenu` dispara pero el action manager en vista móvil no renderiza; (d) navigación requiere URL/hash distinto y el test mide mal.
-- *Siguiente paso:* dump en runtime de `menuService.getMenu("base.menu_administration")`, depurar `_resolveLeaf`, comparar móvil vs desktop.
+- *Contexto:* `goToSettings()` usaba `this.menuService.getMenu("base.menu_administration")` que **no existe** en el API del menu service Odoo 19 (métodos válidos: `getApps()`, `getMenuAsTree(id)`). Retorna `undefined` → `_resolveLeaf(undefined)` → `selectMenu` nunca se llama.
+- *Fix:* Buscar el app por `xmlid` desde `[...state.railApps, ...state.otherApps].find(a => a.xmlid === "base.menu_administration")`. Estos arrays ya están poblados en `onWillStart` con `_childrenTree`. `_resolveLeaf(settingsApp)` encuentra la primera hoja con `actionID`.
+- *Resuelto:* 2026-09-23 — `goToSettings()` corrigido en `sidebar.js`.
 
 **BUG-S-001 — Template del sidebar vaciado**
 - *Origen:* diff working tree sin commitear (`git diff` 2026-09-23): `-144 líneas` en `sidebar.xml`.
@@ -89,6 +88,7 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 | BUG-S-005 | 2026-09-23 | Drawer móvil incompleto | Template drawer + backdrop en `sidebar.xml`; SCSS `.o_erpico_drawer`/`.o_erpico_backdrop` con transiciones 300ms; Escape cierra (JS) | CDP: drawer abre/cierra, backdrop, Escape |
 | BUG-S-006 | 2026-09-23 | `goToCompany` con evento fantasma | Eliminado `goToCompany()`; `SwitchCompanyMenu` real en footer del drawer (`sidebar.xml` + `sidebar.js` `static.components`) | CDP: SwitchCompanyMenu renderiza |
 | BUG-S-007 | 2026-09-23 | `goToSettings` sin `_resolveLeaf` | Ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` en el código restaurado; xmlid confirmado runtime | CDP: Ajustes navega a Settings |
+| BUG-S-012 | 2026-09-23 | `goToSettings()` no navega en móvil | `menuService.getMenu()` no existe en Odoo 19 API. Fix: buscar app por xmlid desde `state.railApps/otherApps` (con `_childrenTree` pre-poblado en `onWillStart`) | CDP: Ajustes navega a Settings (móvil) |
 
 ---
 

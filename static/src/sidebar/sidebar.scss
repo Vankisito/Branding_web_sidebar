@@ -108,6 +108,11 @@ $erpico-allapps-w: 360px;
     font-family: 'Outfit', 'Work Sans', sans-serif;
 }
 
+/* Fullscreen: ocultar sidebar */
+.o_erpico_sidebar-fullscreen-hidden {
+    display: none !important;
+}
+
 /* ===== Sidebar (M2): rail + flyout + todas las apps ===== */
 
 .o_erpico_sidebar {
@@ -185,10 +190,10 @@ $erpico-allapps-w: 360px;
         background: transparent;
     }
 
-    &:hover,
     &:focus-visible {
+        outline: 2px solid $erpico-horizon;
+        outline-offset: 2px;
         background: $erpico-rail-hover;
-        outline: none;
     }
 
     &.o_active {
@@ -505,6 +510,7 @@ $erpico-allapps-w: 360px;
             &:focus-visible {
                 background: rgba(255, 255, 255, 0.06);
                 color: $erpico-surface;
+                outline: 1px solid rgba(255, 255, 255, 0.3);
             }
 
             &.o_active {

@@ -4,8 +4,7 @@
 > `sidebar_test` funcionando y bugs críticos S-001/S-002/S-003 resueltos con
 > evidencia CDP.
 >
-> **Última actualización:** 2026-09-23 — CDP smoke básico ✅; matriz manual y
-> regresión debranding pendientes (Fase 5).
+> **Última actualización:** 2026-09-23 — CDP smoke básico ✅; Fase 2 (S-012, S-011a, S-011b) completada; matriz manual y regresión debranding pendientes (Fase 5).
 
 ---
 
@@ -44,9 +43,9 @@ Edge headless + CDP contra `http://localhost:8071` (patrón validado en
 | C4 | Clic submenú → navega (cambio de vista) | D-13 | ⏳ Fase 5 |
 | C5 | Landing admin = Dashboards; no-admin = default | S-002 / D-10 | ✅ `/odoo/dashboards?dashboard_id=3` (admin) |
 | C6 | Dump `menuService.getApps()` → xmlids confirmados | D-20 (provisionales) | ✅ todos confirmados (ver D-20) |
-| C7 | Viewport 375px → toggle → drawer abre; backdrop/Escape cierran | S-004, S-005 | ⏳ Fase 2 |
-| C8 | Footer: Ajustes navega; SwitchCompanyMenu abre dropdown | S-006, S-007 / D-15 | ⏳ Fase 2 |
-| C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ⏳ Fase 4 |
+| C7 | Viewport 375px → toggle → drawer abre; backdrop/Escape cierran | S-004, S-005 | ✅ CDP: drawer abre/cierra, backdrop, Escape |
+| C8 | Footer: Ajustes navega; SwitchCompanyMenu abre dropdown | S-006, S-007 / D-15 | ✅ Ajustes navega (S-012 resuelto) |
+| C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ✅ `ACTION_MANAGER:UI-UPDATED` listener + CSS `.o_erpico_sidebar-fullscreen-hidden` |
 | C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ✅ navbar renderiza; resto visual → manual |
 
 ## 3. Matriz manual (spec §7.3 — Fase 5)

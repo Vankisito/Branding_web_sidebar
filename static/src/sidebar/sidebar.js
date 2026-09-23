@@ -42,6 +42,7 @@ export class Sidebar extends Component {
             flyoutApp: null,
             allAppsOpen: false,
             drawerOpen: false,
+            fullscreenHidden: false,
         });
         this._onAppChanged = this._onAppChanged.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
@@ -77,12 +78,16 @@ export class Sidebar extends Component {
 
         this.env.bus.addEventListener("MENUS:APP-CHANGED", this._onAppChanged);
         this.env.bus.addEventListener("erpico:open-drawer", this._openDrawer);
+        this.env.bus.addEventListener("ACTION_MANAGER:UI-UPDATED", this._onUIUpdated);
+        this._clearHoverTimer = null;
         onMounted(() => {
             window.addEventListener("keydown", this._onKeyDown, true);
         });
         onWillUnmount(() => {
             this.env.bus.removeEventListener("erpico:open-drawer", this._openDrawer);
+            this.env.bus.removeEventListener("ACTION_MANAGER:UI-UPDATED", this._onUIUpdated);
             window.removeEventListener("keydown", this._onKeyDown, true);
+            if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         });
     }
 
@@ -95,14 +100,20 @@ export class Sidebar extends Component {
         this.state.activeAppId = this._currentAppId();
     }
 
+    _onUIUpdated(env) {
+        this.state.fullscreenHidden = env.mode === "fullscreen";
+    }
+
     _onKeyDown(ev) {
         if (ev.key === "Escape") {
             if (this.state.drawerOpen) {
                 this._closeDrawer();
             } else if (this.state.allAppsOpen) {
                 this.state.allAppsOpen = false;
+                this._hoverLock = false;
             } else if (this.state.flyoutApp) {
                 this.state.flyoutApp = null;
+                this._hoverLock = false;
             }
         }
     }
@@ -115,6 +126,8 @@ export class Sidebar extends Component {
         this.state.drawerOpen = false;
         this.state.flyoutApp = null;
         this.state.allAppsOpen = false;
+        this._hoverLock = false;
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
     }
 
     /** Nodo accionable: raíz con acción o primer hoja del árbol. */
@@ -137,10 +150,14 @@ export class Sidebar extends Component {
     }
 
     selectApp(app) {
+        this._hoverLock = false;
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this._open(this._resolveLeaf(app));
     }
 
     openItem(menu) {
+        this._hoverLock = false;
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this._open(this._resolveLeaf(menu));
     }
 
@@ -158,8 +175,9 @@ export class Sidebar extends Component {
 
     /** Ir a Ajustes (configuración general) */
     goToSettings() {
-        const settingsMenu = this.menuService.getMenu("base.menu_administration");
-        const leaf = settingsMenu ? this._resolveLeaf(settingsMenu) : undefined;
+        const settingsApp = [...this.state.railApps, ...this.state.otherApps]
+            .find(a => a.xmlid === "base.menu_administration");
+        const leaf = settingsApp ? this._resolveLeaf(settingsApp) : undefined;
         if (leaf) {
             this.menuService.selectMenu(leaf);
         }
@@ -171,10 +189,37 @@ export class Sidebar extends Component {
     }
 
     clearHover() {
-        this.state.flyoutApp = null;
+        this._clearHoverTimer = setTimeout(() => {
+            if (!this._hoverLock) {
+                this.state.flyoutApp = null;
+            }
+        }, 180);
+    }
+
+    _openFlyout(app) {
+        this._hoverLock = true;
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
+        this.state.flyoutApp = app;
+    }
+
+    _closeFlyout() {
+        this._hoverLock = false;
+        this.clearHover();
+    }
+
+    _onRailKeydown(app, ev) {
+        if (ev.key === "ArrowRight" || ev.key === "ArrowDown") {
+            ev.preventDefault();
+            this._openFlyout(app);
+        }
+        if (ev.key === "Escape") {
+            this._closeFlyout();
+        }
     }
 
     toggleAllApps() {
+        this._hoverLock = false;
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this.state.allAppsOpen = !this.state.allAppsOpen;
     }
 

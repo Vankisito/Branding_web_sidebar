@@ -4,7 +4,7 @@
     <t t-name="erpico_web_sidebar.Sidebar">
         <nav
             t-if="state.ready"
-            class="o_erpico_sidebar d-none d-lg-flex"
+            t-att-class="'o_erpico_sidebar ' + (state.fullscreenHidden ? 'o_erpico_sidebar-fullscreen-hidden' : 'd-none d-lg-flex')"
             aria-label="Aplicaciones ERPICO"
         >
             <!-- Rail -->
@@ -34,6 +34,7 @@
                             t-on-mouseenter="() => this.hoverApp(app)"
                             t-on-mouseleave="() => this.clearHover()"
                             t-on-click.stop="() => this.selectApp(app)"
+                            t-on-keydown="(ev) => this._onRailKeydown(app, ev)"
                         >
                             <t t-if="app._icon.kind === 'img'">
                                 <img class="o_erpico_rail_icon" t-att-src="app._icon.src" alt="" />
