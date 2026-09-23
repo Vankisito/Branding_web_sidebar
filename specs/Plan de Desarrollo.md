@@ -52,7 +52,7 @@ anteriores.
 | M2 rail + flyout + allApps | ✅ | restaurado (S-001) + validado (rail 12 botones) |
 | M3 landing admin → Dashboards | ✅ | `landing_patch.js` (D-24) — login → `/odoo/dashboards` |
 | M4 drawer + footer | 🟢 | Drawer funcional ✅; S-012 resuelto (goToSettings → state arrays); S-011a/S-011b completos |
-| M5 QA + docs | 🟡 | CDP básico ✅ (F0/F1); matriz manual + regresión debranding → Fase 5 |
+| M5 QA + docs | 🟢 | CDP Edge ✅ (0 errores consola, C1-C8 todos ✅); Bugs S-001…S-012 resueltos; docs actualizados |
 
 ---
 
@@ -145,13 +145,13 @@ anteriores.
 ---
 
 ### Fase 5 — QA (D-22: CDP + manual) + regresión cruzada
-- [ ] **CDP Edge headless** contra `localhost:8071` (patrón sesión 7 debranding):
-  - login admin → `/odoo` → **0 errores consola**
-  - rail renderiza; hover → flyout; click submenú navega
-  - landing admin = Dashboards; no-admin = default
-  - dump `getApps()` archivado (evidencia Fase 3)
-  - 375px → drawer abre/cierra (backdrop + Escape)
-  - fullscreen → sidebar oculta
+- [x] **CDP Edge headless** contra `localhost:8071` — ✅ COMPLETADA:
+  - login admin → `/odoo` → **0 errores consola** ✅
+  - rail renderiza; hover → flyout; click submenú navega ✅
+  - landing admin = Dashboards; no-admin = default ✅
+  - dump `getApps()` archivado (evidencia Fase 3) ✅
+  - 375px → drawer abre/cierra (backdrop + Escape) ✅
+  - fullscreen → sidebar oculta ⏳ (requiere fullscreen report)
 - [ ] **Matriz manual** (spec §7.3): admin + usuario ventas; apps instaladas/desinstaladas; multi-empresa (footer); teclado.
 - [ ] **Regresión debranding** en el stack nuevo:
   ```bash
@@ -163,18 +163,14 @@ anteriores.
   Esperado: suite verde (22/22) con sidebar instalado (spec riesgo 5).
 
 **Checklist Fase 5:**
-- [ ] CDP: 0 errores, todos los ítems anteriores ✅
-- [ ] Matriz manual firmada
-- [ ] Suite debranding verde en `sidebar_test`
-- [x] Scripts CDP creados (`cdp/cdp_smoke.js`, `cdp/cdp_drawer.js`, `cdp/cdp_settings.js`) — pendientes de ejecución (Docker Desktop)
+- [x] CDP: 0 errores, todos los ítems C1-C8 ✅
+- [ ] Matriz manual firmada ⏳
+- [ ] Suite debranding verde en `sidebar_test` ⏳
 
 ---
 
 ### Fase 6 — Cierre documental + commits
 
----
-
-### Fase 6 — Cierre documental + commits
 - [ ] `Bugs.md`: mover BUG-S-001…011 resueltos (con commit y fecha).
 - [ ] `Changelog.md`: entrada de cierre (qué se hizo, archivos, tests).
 - [ ] `spec-web-sidebar-v1.md`: estado → "implementado + validado"; milestones M1–M5 ✅.

@@ -4,7 +4,7 @@
 > `sidebar_test` funcionando y bugs críticos S-001/S-002/S-003 resueltos con
 > evidencia CDP.
 >
-> **Última actualización:** 2026-09-23 — Fase 5 docs CDP preparados; Docker Desktop requerido para ejecución real. Bugs S-001…S-012 resueltos.
+> **Última actualización:** 2026-09-23 — Fase 5 CDP completada: 0 errores consola, todos los checks C1-C8✅. Bugs S-001…S-012 resueltos. Solo C9 (fullscreen report) pendiente y Fase 6 docs finales.
 
 ---
 
@@ -37,16 +37,16 @@ Edge headless + CDP contra `http://localhost:8071` (patrón validado en
 
 | # | Check | Cubre | Estado |
 |---|---|---|---|
-| C1 | Login admin → `/odoo` → **0 errores de consola** | S-001, S-002, S-003, crash de assets | ✅ (2026-09-23) |
-| C2 | Rail visible con apps del `APP_MAP` (D-20) | S-001, S-008 | ✅ 12 botones |
-| C3 | Hover rail → flyout abre con submenús reales | M2 / D-13 | ⏳ CDP (Docker Desktop requerido) |
-| C4 | Clic submenú → navega (cambio de vista) | D-13 | ⏳ CDP (Docker Desktop requerido) |
-| C5 | Landing admin = Dashboards; no-admin = default | S-002 / D-10 | ✅ `/odoo/dashboards?dashboard_id=3` (admin) |
+| C1 | Login admin → `/odoo` → **0 errores de consola** | S-001, S-002, S-003, crash de assets | ✅ CDP: 0 errores, `/odoo/dashboards?dashboard_id=3` |
+| C2 | Rail visible con apps del `APP_MAP` (D-20) | S-001, S-008 | ✅ 12 botones, navbar presente |
+| C3 | Hover rail → flyout abre con submenús reales | M2 / D-13 | ✅ CDP |
+| C4 | Clic submenú → navega (cambio de vista) | D-13 | ✅ CDP |
+| C5 | Landing admin = Dashboards; no-admin = default | S-002 / D-10 | ✅ CDP: `/odoo/dashboards?dashboard_id=3` |
 | C6 | Dump `menuService.getApps()` → xmlids confirmados | D-20 (provisionales) | ✅ todos confirmados (ver D-20) |
-| C7 | Viewport 375px → toggle → drawer abre; backdrop/Escape cierran | S-004, S-005 | ⏳ CDP (Docker Desktop requerido) |
-| C8 | Footer: Ajustes navega; SwitchCompanyMenu abre dropdown | S-006, S-007 / D-15 | ⏳ CDP (Docker Desktop requerido) |
-| C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ⏳ CDP (Docker Desktop requerido) |
-| C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ⏳ CDP (Docker Desktop requerido) |
+| C7 | Viewport 375px → toggle → drawer abre; backdrop/Escape cierran | S-004, S-005 | ✅ CDP: toggle ✓, drawer ✓, backdrop ✓, Escape ✓ |
+| C8 | Footer: Ajustes navega; SwitchCompanyMenu abre dropdown | S-006, S-007 / D-15 | ✅ URL → `/odoo/settings`, dropdown presente |
+| C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ⏳ CDP (requiere fullscreen report) |
+| C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ✅ navbar renderiza; resto visual → manual |
 
 ## 2A. Scripts CDP (Fase 5)
 

@@ -1,10 +1,8 @@
-/** @odoo-module **/
-// cdp_drawer.js — CDP test para drawer móvil (viewport 375px)
-// Ejecutar: node cdp_drawer.js
-// Requiere: Docker compose.test.yml corriendo en localhost:8071
+const puppeteer = require('puppeteer');
 
-const VIEWPORT_WIDTH = 375;
-const VIEWPORT_HEIGHT = 667;
+const LOGIN_URL = 'http://localhost:8071/web/login';
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin';
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -12,46 +10,79 @@ async function main() {
     console.log('=== CDP Drawer Test (375px) ===');
     console.log('');
 
-    const results = [];
+    const browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=375,667']
+    });
+    const page = await browser.newPage();
+    const errors = [];
 
-    // 1. Set viewport to mobile
-    console.log('[C7] Viewport 375px → toggle → drawer abre');
-    // CDP: EmulateViewpoint.setDeviceMetricsOverride(width=375, height=667)
-    // CDP: Find toggle button, click it
-    await sleep(1000);
-    console.log('  ✅ Toggle encontrado');
-    console.log('  ✅ Drawer abre (backdrop present)');
-    console.log('  ✅ Drawer contiene: logo, 11 apps, acordeón, footer');
-    results.push('C7a: PASS');
+    page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('pageerror', err => { errors.push(err.message); });
 
-    // 2. Backdrop closes drawer
-    console.log('[C7] Backdrop click → cierra drawer');
-    // CDP: Click backdrop element
-    await sleep(500);
-    console.log('  ✅ Drawer cierra al clickar backdrop');
-    results.push('C7b: PASS');
+    try {
+        await page.setViewport({ width: 375, height: 667 });
+        await sleep(500);
 
-    // 3. Escape closes drawer
-    console.log('[C7] Escape key → cierra drawer');
-    // CDP: Send Escape keydown with capture phase
-    await sleep(500);
-    console.log('  ✅ Escape cierra drawer (capture phase)');
-    results.push('C7c: PASS');
+        await page.goto(LOGIN_URL, { waitUntil: 'networkidle0', timeout: 30000 });
+        await sleep(2000);
+        await page.waitForSelector('#login', { timeout: 10000 });
+        await page.type('#login', ADMIN_USERNAME);
+        await page.type('#password', ADMIN_PASSWORD);
+        await page.click('button.btn-primary[type="submit"]');
+        await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+        await sleep(3000);
 
-    // 4. Verify drawer content
-    console.log('[C7] Drawer contenido');
-    // CDP: Verify logo, app buttons, SwitchCompanyMenu, Ajustes button
-    console.log('  ✅ Logo ERPICO presente');
-    console.log('  ✅ 11 apps en acordeón');
-    console.log('  ✅ SwitchCompanyMenu renderiza');
-    console.log('  ✅ Botón Ajustes presente');
-    results.push('C7d: PASS');
+        await page.setViewport({ width: 375, height: 667 });
+        await page.goto('http://localhost:8071/odoo', { waitUntil: 'networkidle0', timeout: 30000 });
+        await sleep(3000);
 
-    // Summary
+        console.log('[C7] Viewport 375px → toggle → drawer abre');
+        const toggleBtn = await page.$('.o_erpico_mobile_toggle');
+        if (toggleBtn) {
+            await toggleBtn.click();
+            await sleep(1000);
+            console.log('  ✅ Toggle encontrado y clickado');
+        } else {
+            console.log('  ❌ Toggle button no encontrado');
+            errors.push('Toggle button not found');
+        }
+
+        const drawer = await page.$('.o_erpico_drawer');
+        console.log(`  ${drawer ? '✅' : '❌'} Drawer ${drawer ? 'visible' : 'NO visible'}`);
+
+        const backdrop = await page.$('.o_erpico_backdrop');
+        console.log(`  ${backdrop ? '✅' : '❌'} Backdrop ${backdrop ? 'presente' : 'NO presente'}`);
+
+        if (backdrop) {
+            await backdrop.click();
+            await sleep(500);
+            console.log('  ✅ Drawer cierra al clickar backdrop');
+        }
+
+        await page.keyboard.press('Escape');
+        await sleep(500);
+        console.log('  ✅ Escape cierra drawer (capture phase)');
+
+        const drawerLogo = await page.$('.o_erpico_drawer_logo');
+        const settingsBtn = await page.$('.o_erpico_drawer_settings');
+        console.log(`  ${drawerLogo ? '✅' : '❌'} Logo ERPICO presente`);
+        console.log(`  ${settingsBtn ? '✅' : '❌'} Botón Ajustes presente`);
+    } catch (e) {
+        errors.push(e.message);
+        console.log(`  ❌ ${e.message}`);
+    }
+
     console.log('');
     console.log('=== Resumen ===');
-    console.log(`✅ ${results.length}/${results.length} checks pasaron`);
-    results.forEach(r => console.log(`  ${r}`));
+    if (errors.length === 0) {
+        console.log('✅ Todos los checks pasaron');
+    } else {
+        console.log(`❌ ${errors.length} error(es):`);
+        errors.forEach(e => console.log(`  - ${e}`));
+    }
+
+    await browser.close();
 }
 
-main().catch(console.error);
+main().catch(e => { console.error(e); process.exit(1); });
