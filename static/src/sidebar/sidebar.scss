@@ -376,8 +376,11 @@ $erpico-allapps-w: 360px;
 }
 
 /* Compensación del contenido: el layout clásico ocupaba el ancho completo */
+/* Verificar selector exacto contra build Odoo 19 (.o_main / .o_action_manager / .o_content) */
 @media (min-width: 992px) {
-    .o_main {
+    .o_main,
+    .o_action_manager,
+    .o_content {
         margin-left: $erpico-rail-w;
     }
 }

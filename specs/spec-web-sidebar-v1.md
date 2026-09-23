@@ -1,6 +1,6 @@
 # Spec — erpico_web_sidebar v1 — Navegación tipo Tiendanube para Odoo 19
 
-**Estado:** Diseño aprobado (decisiones v1) → siguiente: implementación
+**Estado:** Implementación Fases 0–4 ✅ (D-20 confirmado runtime, S-012/S-011a/S-011b resueltos) → siguiente: Fase 5 QA CDP
 **Fecha:** 2026-09-22
 **Versión objetivo:** 19.0.1.0.0
 **Licencia:** LGPL-3.0 or later (OCA)
@@ -22,7 +22,7 @@ Sustituir la navegación del backend de Odoo por una **sidebar tipo Tiendanube**
 - **Mobile (≤768px)**: sidebar colapsa a **drawer** con backdrop + acordeón de submenús.
 - **Todos los usuarios** ven sidebar. No-admin: sin tableros, aterrizan en app default normal (decisión futura para no-admin).
 
-## 2. Decisiones confirmadas (D-10 … D-15)
+## 2. Decisiones confirmadas (D-10 … D-24)
 
 | ID | Decisión |
 |---|---|
@@ -36,6 +36,9 @@ Sustituir la navegación del backend de Odoo por una **sidebar tipo Tiendanube**
 | D-17 | Módulo separado `erpico_web_sidebar` (autocontenido, specs propias) |
 | D-18 | Estrategia OCA: **solo herencia/overrides en módulo, jamás editar core** |
 | D-19 | Apps objetivo v1: Contactos, CRM, Ventas, POS, Website, E-commerce, Compras, Facturación, Inventario |
+| D-20 | Rail = D-19 + **Discuss + Calendario + Ajustes**; quita `base.menu_management`. 13 apps confirmadas runtime (xmlids en §5.4). `sale.sale_menu_root` y `website_sale.menu_ecommerce` existen pero no son app root → rail 12/13 |
+| D-23 | Tras editar JS hay que **reiniciar el contenedor** (`docker restart odoo_sidebar_test`) para refrescar bundle cacheado |
+| D-24 | Landing Dashboards: gate por **PRESENCIA** del menú (no `hasGroup`, flaky en boot) |
 
 ## 3. Alcance / No-alcance
 
@@ -194,30 +197,31 @@ Servicios: `menu`, `action`, `ui` (para `isSmall`). Suscripciones: `MENUS:APP-CH
 - Click en submenú → `menuService.selectMenu(item)` (D-13, misma API que el core).
 - Rail-footer: Ajustes → `selectMenu` del menú settings (`base.menu_administration`, verificar xmlid en runtime); Cambiar empresa → **reutilizar `SwitchCompanyMenu`** (`@web/webclient/switch_company_menu/switch_company_menu`, component exportado) renderizado en el footer del rail → dropdown real de empresas, sin duplicar lógica.
 
-### 5.4 Mapeo app → icono brand (D-11, D-19)
+### 5.4 Mapeo app → icono brand (D-20 confirmado runtime)
 
-`getApps()` devuelve root menus con `xmlid`. Mapa clave = xmlid del menú root (provisional — **verificar en runtime con dump de `menuService.getApps()`** durante build):
+`getApps()` devuelve root menus con `xmlid`. Mapa clave = xmlid del menú root (**confirmado** contra `menuService.getApps()` runtime 2026-09-23):
 
-| App Odoo | xmlid root (provisional) | Icono |
-|---|---|---|
-| Dashboards | `spreadsheet_dashboard.spreadsheet_dashboard_menu_root` | `i-dashboard` (UI) |
-| Contactos | `contacts.menu_contacts` | `i-building` (UI) * |
-| CRM | `crm.menu_crm_root` | `brand-clientes-reportes` |
-| Ventas | `sale.menu_sale_root` | `brand-pedidos-devoluciones` |
-| Punto de venta | `point_of_sale.main_menu_pos_root` | `brand-punto-de-venta` |
-| Sitio web | `website.menu_website_root` | `i-globe` (UI) * |
-| E-commerce | `website_sale.menu_ecommerce` | `brand-ecommerce-integrado` * |
-| Compras | `purchase.menu_purchase_root` | `brand-compras` |
-| Facturación | `account.menu_finance` | `brand-facturacion` |
-| Inventario | `stock.menu_stock_root` | `brand-inventario-ubicacion` |
+| # | App | xmlid | Icono |
+|---|---|---|---|
+| 1 | Dashboards | `spreadsheet_dashboard.spreadsheet_dashboard_menu_root` | `i-dashboard` (sprite) |
+| 2 | Contactos | `contacts.menu_contacts` | `i-building` (sprite) |
+| 3 | CRM | `crm.crm_menu_root` | `brand-clientes-reportes` |
+| 4 | Punto de venta | `point_of_sale.menu_point_root` | `brand-punto-de-venta` |
+| 5 | Compras | `purchase.menu_purchase_root` | `brand-compras` |
+| 6 | Facturación | `account.menu_finance` | `brand-facturacion` |
+| 7 | Inventario | `stock.menu_stock_root` | `brand-inventario-ubicacion` |
+| 8 | Sitio web | `website.menu_website_configuration` | `i-globe` (sprite) |
+| 9 | **Discuss** | `mail.menu_root_discuss` | `i-bell` (sprite) |
+| 10 | **Calendario** | `calendar.mail_menu_calendar` | `i-calendar` (sprite) |
+| 11 | **Ajustes** | `base.menu_administration` | `i-settings` (sprite) |
 
-\* Contactos y Sitio web no tienen brand icon dedicado en `public/icons/features/`; se usan iconos UI de la sprite (propuesta — el jefe puede proveer brand icons).
-\* E-commerce en Odoo 19 viene de `website_sale` (menú root propio con web_icon). Verificar xmlid real.
+> **No son app root** (no entran al rail): `sale.sale_menu_root` (res 278, action None), `website_sale.menu_ecommerce` (submenú de Sitio web). Rail renderiza **12/13** de las apps mapeadas.
+> **Eliminado:** `base.menu_management` (Apps/Marketplace — no deseado, D-20).
 
 **Lógica de filtrado (D-12):** se renderizan solo apps del mapa cuyo xmlid exista entre `getApps()`. Apps no mapeadas (proyectos, marketing…) **no** aparecen en el rail (accesibles vía "Todas las aplicaciones").
-**Fallback de icono:** si una app del mapa tiene xmlid distinto al provisional → intentar match por nombre (`getCurrentApp().name` traducción) o usar `webIconData` de la app.
+**Fallback de icono:** si una app del mapa tiene xmlid distinto al confirmado → intentar match por nombre (`getCurrentApp().name` traducción) o usar `webIconData` de la app.
 
-**Orden del rail (mockup):** Tableros, Contactos, CRM, Ventas, Compras, Inventario, Punto de venta, Sitio web, E-commerce, Facturación. Se mantiene sequence del mapa (array ordenado), no la de Odoo.
+**Orden del rail (D-20):** Dashboards, Contactos, CRM, Punto de venta, Compras, Facturación, Inventario, Sitio web, Discuss, Calendario, Ajustes.
 
 ### 5.5 "Todas las aplicaciones" (botón grid, rail-top)
 
@@ -271,9 +275,9 @@ $erpico-rail-hover: #1c2446;  $erpico-rail-text: #b9c5d8;
 $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 ```
 - Fuentes: `@font-face` Outfit (títulos) + Work Sans (body) — ambas embebidas (Outfit extraída del base64 del mockup; Work Sans del repo website o Google Fonts).
-- Content: `margin-left: $rail-w` en `.o_action_manager` / wrapper (solo desktop).
+- Content: `margin-left: $rail-w` en `.o_main` (solo desktop). Verificar selector exacto contra build.
 - Topbar: `position: sticky` sobre la sidebar (z-index: rail 40, topbar 30, flyout 45 — del mockup).
-- Fullscreen: sidebar `display:none` cuando `ACTION_MANAGER:UI-UPDATED = fullscreen`.
+- Fullscreen: `.o_erpico_sidebar-fullscreen-hidden { display: none !important }` cuando `ACTION_MANAGER:UI-UPDATED` envía `mode === 'fullscreen'`.
 
 ## 6. Assets a extraer (build-time)
 

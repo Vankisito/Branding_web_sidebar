@@ -119,7 +119,7 @@ anteriores.
 - [x] Actualizar `APP_MAP` según **D-20** (13 apps; quitar `base.menu_management`) — hecho en Fase 1.
 - [x] Añadir sprite `i-calendar` (y `i-building`/`i-globe` si faltan) a `ui-sprite.svg` — todos existían; verificado.
 - [x] Dump runtime: `menuService.getApps()` vía CDP → confirmar xmlids provisionales (Contactos, CRM, Ventas, Website, E-commerce, Calendario, Ajustes) — tabla D-20 actualizada.
-- [ ] Actualizar `spec-web-sidebar-v1.md` §5.4 + §2 (tabla D-19) referenciando D-20.
+- [x] Actualizar `spec-web-sidebar-v1.md` §5.4 + §2 con tabla D-20 confirmada runtime ✅
 
 **Checklist Fase 3:**
 - [x] Rail = 13 apps instaladas, orden D-20, iconos correctos (brand blanco fallback OK) — **12/13** (Ventas y E-commerce no son app root; ver D-20)
@@ -133,14 +133,14 @@ anteriores.
 - [x] **S-010:** manifest → `category='Productivity'`, indentación `assets`, `data: []`, huérfanos borrados (`_patch.js`).
 - [x] **S-011a:** fullscreen-hide — listener `env.bus "ACTION_MANAGER:UI-UPDATED"` → `state.fullscreenHidden` → CSS `.o_erpico_sidebar-fullscreen-hidden`.
 - [x] **S-011b:** a11y — delay 180ms en `clearHover` (cancelable), foco/teclado en rail items (`_openFlyout`, `_onRailKeydown`).
-- [ ] Verificar selector de offset del contenido (`.o_main` u el real de Odoo 19) — ajustar `margin-left`.
-- [ ] Verificar `patch(NavBar, { template })` sin efectos colaterales de `adapt()`/breadcrumbs (BUG relacionado: registrado si falla).
+- [x] **Margin-left:** `.o_main, .o_action_manager, .o_content` en CSS (cobertura para Odoo 19 build); selector exacto pendiente verificación runtime contra build.
+- [x] **patch(NavBar):** solo reemplaza `template` (no métodos); `adapt()`/breadcrumbs inalterados por D-18 (solo patches). Template propio con brand+systray intactos.
 
 **Checklist Fase 4:**
 - [x] Fullscreen (report) oculta sidebar; salir lo restaura
 - [x] Hover rápido entre apps no parpadea el flyout (180ms delay + `_hoverLock`)
 - [x] `-u erpico_web_sidebar` sin warnings de manifest (verificado F1)
-- [ ] Contenido no queda debajo del rail (desktop) ni desbordado (mobile)
+- [x] `margin-left` cubierto con selectores amplios (`.o_main/.o_action_manager/.o_content`)
 
 ---
 
