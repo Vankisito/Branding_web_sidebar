@@ -1,6 +1,6 @@
 # Spec — erpico_web_sidebar v1 — Navegación tipo Tiendanube para Odoo 19
 
-**Estado:** Implementación Fases 0–4 ✅ (D-20 confirmado runtime, S-012/S-011a/S-011b resueltos) → siguiente: Fase 5 QA CDP
+**Estado:** Implementado y validado Fases 0–5 ✅ (D-20/runtime confirmado; S-012…S-016 resueltos; matriz manual + regresión debranding ejecutadas; no-admin landing validado; R2 sin acumulación). Pendiente: C9 fullscreen report + soporte/entrega (Fase 6 cierre).
 **Fecha:** 2026-09-22
 **Versión objetivo:** 19.0.1.0.0
 **Licencia:** LGPL-3.0 or later (OCA)
