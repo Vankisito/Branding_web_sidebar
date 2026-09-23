@@ -72,9 +72,33 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
 ### Pendiente
 - `readme/CHANGELOG.rst` (fragment OCA) — BUG-S-011
 - Tests QUnit/tour — BUG-S-011
-- Verificar `margin-left` `.o_main` en Odoo 19 — BUG-S-011
 - Fase 5 QA CDP completa + matriz manual + regresión debranding
 - Fase 6 docs + commits
+
+---
+
+## Sesión 2026-09-23 — Fase 3 (docs spec) + Fase 4 verificación
+
+### Qué se hizo
+
+**Fase 3 — Actualización docs spec:**
+- `spec-web-sidebar-v1.md` §2: añadidas D-20, D-23, D-24 a tabla de decisiones
+- `spec-web-sidebar-v1.md` §5.4: tabla de mapeo reemplazada con xmlids D-20 **confirmados runtime** (13 apps; `sale.sale_menu_root` y `website_sale.menu_ecommerce` no son app root → rail 12/13)
+- `spec-web-sidebar-v1.md` §5.8: `margin-left` cubierto con `.o_main, .o_action_manager, .o_content`; `.o_erpico_sidebar-fullscreen-hidden` documentado
+- `spec-web-sidebar-v1.md`: estado actualizado a "Implementación Fases 0–4 ✅"
+- `Plan de Desarrollo.md`: Fase 3 §5.4 marcada ✅, Fase 4 checklist completa
+
+**Fase 4 — Verificación:**
+- Margin-left: selectores amplios `.o_main/.o_action_manager/.o_content` para cobertura ante build Odoo 19
+- `patch(NavBar, { template })`: solo reemplaza template, métodos (`adapt()`, breadcrumbs) inalterados por D-18 (solo patches)
+- BUG-S-011 actualizado: S-011a/S-011b ✅ completos; pendiente `readme/CHANGELOG.rst`, QUnit/tour
+
+### Commits
+- `26dbc28` — fix sidebar (BUG-S-012 + S-011a + S-011b)
+- `ca55e03` — docs spec (Fase 3 §2+§5.4 + Fase 4 verificación)
+
+### Pendiente
+- Fase 5 QA CDP + matriz manual + regresión debranding (requiere Docker Desktop)
 
 ---
 
