@@ -77,7 +77,6 @@ export class Sidebar extends Component {
             this.state.ready = true;
         });
 
-        this.env.bus.addEventListener("MENUS:APP-CHANGED", this._onAppChanged);
         this.env.bus.addEventListener("erpico:open-drawer", this._openDrawer);
         this.env.bus.addEventListener("ACTION_MANAGER:UI-UPDATED", this._onUIUpdated);
         this._clearHoverTimer = null;
@@ -168,11 +167,7 @@ export class Sidebar extends Component {
             this.menuService.selectMenu(leaf);
         }
         this.state.allAppsOpen = false;
-    }
-
-    toggleDrawer() {
-        this.state.drawerOpen = !this.state.drawerOpen;
-        this.env.bus.trigger("erpico:open-drawer");
+        this.state.drawerOpen = false;
     }
 
     /** Ir a Ajustes (configuración general) */
@@ -187,6 +182,7 @@ export class Sidebar extends Component {
     }
 
     hoverApp(app) {
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this.state.flyoutApp = app;
     }
 
