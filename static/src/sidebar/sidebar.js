@@ -45,6 +45,7 @@ export class Sidebar extends Component {
         });
         this._onAppChanged = this._onAppChanged.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
+        this._openDrawer = this._openDrawer.bind(this);
 
         onWillStart(async () => {
             const apps = this.menuService.getApps();
