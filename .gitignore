@@ -1,0 +1,7 @@
+# Node dependencies (CDP test tooling — do not vendor)
+cdp/node_modules/
+node_modules/
+
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
