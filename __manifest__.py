@@ -21,6 +21,7 @@ del seed, y todo es revertible con `-u`.
     'license': 'LGPL-3',
     'depends': [
         'web',
+        'spreadsheet_dashboard',  # landing admin → Dashboards (D-10/D-24)
     ],
     'data': [],
     'assets': {

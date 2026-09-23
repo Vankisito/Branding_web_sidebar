@@ -41,6 +41,8 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
 - Fases 3–6 restantes. Al editar JS: ver D-23 (restart para refrescar bundle).
 - **Push al repo `Branding_web_sidebar`** realizado: commits `b2f81a4` + `feb992a` en `origin/master` (2026-09-23).
 - **Bug encontrado y corregido en compose.test.yml**: `--addons-path=/mnt/extra-addons` sola sombrea los módulos stock de Odoo (ej. `mass_mailing`). Corrección: `--addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons`. Sin esto, `docker compose up -i mass_mailing` falla al instalar.
+- **Infraestructura separada del módulo**: `compose.test.yml` y `Dockerfile` NO forman parte del repo del módulo `Branding_web_sidebar`. Se movieron a la raíz del proyecto (`Odoo 19 test Debranding/compose.test.yml`), fuera del repo, como herramienta de QA local. El módulo es portable: se instala en CUALQUIER BD Odoo 19 con `-u erpico_web_sidebar`.
+- **Dependencia `spreadsheet_dashboard`** añadida a `__manifest__.py`: el landing admin → Dashboards (D-10/D-24) requiere la app Dashboards instalada. Sin ella, `landing_patch.js` cae a `super()` (comportamiento graceful).
 
 ---
 
