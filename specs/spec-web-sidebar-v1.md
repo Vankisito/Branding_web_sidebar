@@ -302,7 +302,7 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 - **M2**: Sidebar en `main_components` → rail + flyout + filtrado mapeo + selectMenu + "Todas las aplicaciones".
 - **M3**: patch `_loadDefaultApp` admin → Dashboards.
 - **M4**: drawer mobile + footer Ajustes/SwitchCompanyMenu + ajustes CSS de contenido/fullscreen.
-- **M5**: QUnit + runtime CDP + matrix manual; docs (Bugs.md?, Changelog sesión 8); commit.
+- **M5**: CDP Edge headless (smoke + drawer + settings), matriz manual, regresión debranding; docs (Bugs.md, Changelog, TESTS_COVERAGE actualizados).
 
 ## 9. Riesgos / puntos abiertos
 
