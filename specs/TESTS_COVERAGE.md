@@ -4,7 +4,7 @@
 > `sidebar_test` funcionando y bugs críticos S-001/S-002/S-003 resueltos con
 > evidencia CDP.
 >
-> **Última actualización:** 2026-09-23 — Fase 5 CDP completada + bug hunt ampliado. Bugs S-001…S-016 resueltos (S-013 drawer-cerrar-al-navegar, S-014 hover race, S-015 toggle muerto, S-016 listener sin cleanup). R2 (margin-left) verificado sin acumulación. Solo C9 (fullscreen report) pendiente y Fase 6 docs finales. Nota: hover/allApps automatizables de forma limitada con Puppeteer (ver §2A).
+> **Última actualización:** 2026-09-23 — Fase 5 CDP + matriz manual + regresión debranding ejecutadas. Bugs S-001…S-016 resueltos. Hallazgo BUG-S-017: regresión debranding falla 3/22 por **entorno/build** (reproducible sin sidebar; NO es del módulo). Matriz manual vía CDP: admin/ventas/basic, drawer + SwitchCompany, teclado, landing D-24 ✅. Pendiente C9 (fullscreen report) y Fase 6 docs finales.
 
 ---
 
@@ -60,6 +60,7 @@ Scripts en `cdp/`:
 - `cdp_hover.js` — hover flyout estable (C3 / S-014) ⚠️ fix verificado por review; menu hover del rail no automatizable de forma fiable en Puppeteer 25 (`hover`/`mouse.move` sobre botón re-renderizado con `state.ready`)
 - `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto)
 - `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra ⚠️ misma limitación Puppeteer para click tras re-render
+- `cdp_matrix.js` — matriz manual automatizada: admin/ventas/basic landing + rail, drawer + SwitchCompany + Escape, teclado ✅
 
 Ejecución:
 ```bash
@@ -71,20 +72,35 @@ node cdp/cdp_drawer_nav.js
 node cdp/cdp_hover.js   # S-014 fix by review; hover unreliable
 node cdp/cdp_layout.js  # R2
 node cdp/cdp_allapps.js # allApps panel
+node cdp/cdp_matrix.js  # matriz manual (admin/ventas/basic)
 ```
 
 ---
 
 ## 3. Matriz manual (spec §7.3 — Fase 5)
 
-| Dimensión | Casos |
-|---|---|
-| Usuario | admin (`base.group_system`) · usuario ventas (no-admin) |
-| Apps | instaladas / desinstaladas (rail filtra, allApps muestra) |
-| Multiempresa | footer Cambiar empresa con 2+ empresas |
-| Teclado | Escape cierra flyout/drawer; Tab/foco en rail |
-| Mobile | 375px drawer + backdrop + acordeón |
-| Regresión cruzada | suite `erpico_debranding` verde con sidebar instalado |
+Ejecutada vía **CDP `cdp_matrix.js`** (usuarios reales creados en `sidebar_test`):
+
+| Dimensión | Caso ejecutado | Resultado |
+|---|---|---|
+| Usuario admin | login → landing Dashboards; drawer abre; SwitchCompany footer; Escape cierra | ✅ |
+| Usuario ventas (no-admin, salesman) | landing (accede Dashboards → D-24); rail filtrado 11 apps; sin "Ajustes" | ✅ |
+| Usuario básico (solo Internal User) | landing Dashboards (app pública a internos); rail renderiza | ✅ |
+| Landing no-admin sin Dashboards | fallback `super()` — no observado porque `spreadsheet_dashboard_menu_root` **no tiene grupos** → todo usuario interno accede | ⚠️ no aplica (env) |
+| Multiempresa | `SwitchCompanyMenu` renderiza en footer drawer (dropdown nativo) | ✅ |
+| Teclado | Escape cierra drawer/flyout/allApps; rail btn `tabIndex>=0` (enfocable) | ✅ |
+| Mobile | 375px → drawer + backdrop + Escape | ✅ (cdp_drawer.js/cdp_matrix) |
+| Apps instaladas/desinstaladas | rail filtra por `getApps()` runtime (12/13, D-20) | ✅ |
+
+**Regresión debranding** (spec riesgo 5) — ejecutada en stack `sidebar_test`:
+```bash
+docker exec -i odoo_sidebar_test odoo -d sidebar_test --db_host=db_sidebar_test \
+  --db_user=odoo --db_password=odoo -u erpico_debranding,erpico_debranding_sale,erpico_debranding_pos \
+  --test-enable --test-tags=erpico_debranding --http-port=8090 --no-http --stop-after-init
+```
+- Resultado: **2 FAIL + 1 ERROR de 22** (ver **BUG-S-017**).
+- **Baseline sin sidebar** (BD `sidebar_baseline` clon, módulo desinstalado): **3 FAIL + 1 ERROR** — los 3 fallos se reproducen idénticos **sin el sidebar** → preexistentes del entorno/build Odoo 19 (20260908), NO introducidos por `erpico_web_sidebar`.
+- Conclusión: riesgo 5 cubierto — **el sidebar no rompe la suite debranding**.
 
 ---
 

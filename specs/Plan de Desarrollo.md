@@ -52,7 +52,7 @@ anteriores.
 | M2 rail + flyout + allApps | ✅ | restaurado (S-001) + validado (rail 12 botones) |
 | M3 landing admin → Dashboards | ✅ | `landing_patch.js` (D-24) — login → `/odoo/dashboards` |
 | M4 drawer + footer | 🟢 | Drawer funcional ✅; S-012 resuelto (goToSettings → state arrays); S-011a/S-011b completos |
-| M5 QA + docs | 🟢 | CDP Edge ✅ (0 errores consola, C1-C8✅ + C11/C12); Bugs S-001…S-016 resueltos (bug hunt: S-013 drawer-cerrar, S-014 hover race, S-015 toggle muerto, S-016 listener); R2 margin verificado; docs actualizados; push inicial hecho. Pendiente manual + regresión debranding |
+| M5 QA + docs | 🟢 | CDP Edge ✅ (0 errores consola, C1-C8✅ + C11/C12); Bugs S-001…S-016 resueltos; R2 margin verificado; **matriz manual + regresión debranding ejecutadas** (BUG-S-017: fallos de entorno preexistentes, el sidebar no rompe la suite); docs actualizados; push hecho. Pendiente: C9 fullscreen + Fase 6 cierre |
 
 ---
 
@@ -154,15 +154,14 @@ anteriores.
   - drawer cierra al navegar (S-013) ✅ — `cdp_drawer_nav.js`
   - R2 margin sin acumulación ✅ — `cdp_layout.js` (`.o_main` no existe en Odoo 19; se mide rail/action_manager/content)
   - fullscreen → sidebar oculta ⏳ (requiere fullscreen report)
-- [ ] **Matriz manual** (spec §7.3): admin + usuario ventas; apps instaladas/desinstaladas; multi-empresa (footer); teclado.
-- [ ] **Regresión debranding** en el stack nuevo:
+- [x] **Matriz manual** (spec §7.3) — **EJECUTADA vía CDP `cdp_matrix.js`**: admin/ventas/basic landing (D-24), rail filtrado, drawer + SwitchCompany footer + Escape, teclado (enfocable). Fallback `super()` no observable: `spreadsheet_dashboard_menu_root` sin grupos (app pública a internos).
+- [x] **Regresión debranding** en el stack nuevo — **EJECUTADA, resultado documentado (BUG-S-017)**:
   ```bash
-  docker exec -i odoo_sidebar_test odoo -d sidebar_test \
-    -u erpico_debranding,erpico_debranding_sale,erpico_debranding_pos \
-    --test-enable --test-tags=erpico_debranding \
-    --http-port=8090 --no-http --stop-after-init
+  docker exec -i odoo_sidebar_test odoo -d sidebar_test --db_host=db_sidebar_test \
+    --db_user=odoo --db_password=odoo -u erpico_debranding,erpico_debranding_sale,erpico_debranding_pos \
+    --test-enable --test-tags=erpico_debranding --http-port=8090 --no-http --stop-after-init
   ```
-  Esperado: suite verde (22/22) con sidebar instalado (spec riesgo 5).
+  Resultado: 2 FAIL + 1 ERROR de 22. **Baseline sin sidebar** (BD `sidebar_baseline` clon): **3 FAIL + 1 ERROR** — mismos fallos reproducidos sin el módulo → **preexistentes del entorno/build Odoo 19 (20260908), NO del sidebar**. Este módulo inyecta solo `web.assets_backend`; los fallos son assets `web.assets_frontend` (`website`/`website_sale` snippets) + `sale_order.picking_policy` NOT NULL. Esperado sin sidebar instalado: misma suite falla → riesgo 5 cubierto.
 
 **Checklist Fase 5 (ampliado — bug hunt):**
 - [x] CDP: 0 errores, ítems C1-C8 ✅ + C11 (S-013) + C12 (R2)
@@ -170,9 +169,9 @@ anteriores.
 - [x] BUG-S-014 hover race (fix `dcf20e1`; CDP parcial por Puppeteer)
 - [x] BUG-S-015 toggleDrawer muerto eliminado
 - [x] BUG-S-016 listener MENUS:APP-CHANGED cleanup
+- [x] Matriz manual automatizada (cdp_matrix.js) — admin/ventas/basic, drawer, teclado ✅
+- [x] Regresión debranding ejecutada — fallos preexistentes del entorno (BUG-S-017), el sidebar no rompe la suite
 - [x] Marca ERPICO verificada contra carpeta oficial (colores/fuentes/logos/iconos MD5 1:1)
-- [ ] Matriz manual firmada ⏳
-- [ ] Suite debranding verde en `sidebar_test` ⏳
 
 ---
 

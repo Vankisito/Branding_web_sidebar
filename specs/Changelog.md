@@ -5,6 +5,36 @@
 
 ---
 
+## Sesión 2026-09-23 — Fase 5 cierre: matriz manual + regresión debranding
+
+### Qué se hizo
+
+**Matriz manual (spec §7.3) automatizada — `cdp/cdp_matrix.js`:**
+- Usuarios reales creados en `sidebar_test` vía `odoo shell`: `ventas` (salesman, no-admin), `basic` (solo Internal User).
+- Resultados: admin landing Dashboards ✅; ventas landing Dashboards ✅ (accede a la app → D-24) + rail filtrado 11 apps sin "Ajustes" ✅; basic landing Dashboards ✅ (app pública a internos). Fallback `super()` no observable: `spreadsheet_dashboard_menu_root` **sin grupos** → todo usuario interno accede. Drawer abre + SwitchCompany footer ✅; Escape cierra ✅; teclado rail enfocable ✅.
+- Corrección de selector: toggle real es `.o_erpico_mobile_toggle` (navbar.xml:11).
+
+**Regresión debranding — hallazgo BUG-S-017:**
+- Ejecutada sobre `sidebar_test`: **2 FAIL + 1 ERROR de 22**:
+  1. `test_login_debranded` (500): `QWebError Unallowed to fetch files from addon website ... Addon website is not installed`.
+  2. `test_purchase_order_portal` (500): ídem con `website_sale`.
+  3. `test_sale_order_portal` (ERROR): `NotNullViolation sale_order.picking_policy`.
+- **Baseline:** BD `sidebar_baseline` = `pg_dump` de `sidebar_test` + desinstalar `erpico_web_sidebar` (no tiene tablas propias) → mismos fallos reproducidos **sin el sidebar** (3 FAIL + 1 ERROR; el extra `test_init_odoobot_neutral` es artefacto del clon sin filestore).
+- **Conclusión:** fallos preexistentes del entorno/build Odoo 19 (20260908) — assets `web.assets_frontend` referenciando `website`/`website_sale` (check de "addon no instalado" en build) y campo `picking_policy` nuevo requerido en `sale.order`. El módulo solo inyecta `web.assets_backend`; **el sidebar NO rompe la suite** → riesgo 5 de la spec cubierto.
+- *Acción BUG-S-017:* reportar a rama debranding; el sidebar lo documenta, no lo bloquea.
+
+### Archivos modificados
+- `cdp/cdp_matrix.js` — nuevo: matriz manual automatizada
+- `specs/Bugs.md` — BUG-S-017 (abierto), sección resueltos reorganizada (detalle histórico consolidado en tabla)
+- `specs/TESTS_COVERAGE.md` — §3 matriz ejecutada + regresión debranding con baseline
+- `specs/Plan de Desarrollo.md` — Fase 5 checklist matriz/regresión [x], milestone M5 actualizado
+
+### Pendiente
+- C9: fullscreen report → sidebar oculta (requiere reporte con botón fullscreen de web).
+- Fase 6: `spec-web-sidebar-v1.md` estado final + commit cierre + push.
+
+---
+
 ## Sesión 2026-09-23 — Fase 5 ampliada: bug hunt + fixes S-013…S-016 + push
 
 ### Qué se hizo
