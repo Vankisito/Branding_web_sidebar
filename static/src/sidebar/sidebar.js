@@ -47,6 +47,7 @@ export class Sidebar extends Component {
         this._onAppChanged = this._onAppChanged.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
         this._openDrawer = this._openDrawer.bind(this);
+        this._onUIUpdated = this._onUIUpdated.bind(this);
 
         onWillStart(async () => {
             const apps = this.menuService.getApps();
@@ -101,7 +102,8 @@ export class Sidebar extends Component {
     }
 
     _onUIUpdated(env) {
-        this.state.fullscreenHidden = env.mode === "fullscreen";
+        if (!this.state) return;
+        this.state.fullscreenHidden = env && env.mode === "fullscreen";
     }
 
     _onKeyDown(ev) {
