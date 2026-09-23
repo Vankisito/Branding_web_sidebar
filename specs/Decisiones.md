@@ -190,3 +190,17 @@
 - No-admin **sin** acceso → comportamiento core (primera app por sequence).
 - La condición `firstApp !== app.id` evita re-seleccionar si ya es la primera app.
 - Si en el futuro se necesita diferenciar explícitamente admin en el landing, resolver `hasGroup` vía `session.is_system` (`odoo.__session_info__`) en vez del servicio `user` en fase de boot.
+
+---
+
+## D-25 — Infraestructura de QA separada del módulo
+
+**Fecha:** 2026-09-23
+**Decisión:** `compose.test.yml` y `Dockerfile` son **infraestructura de QA local**, NO forman parte del módulo `erpico_web_sidebar`. Se ubican en la raíz del proyecto (`Odoo 19 test Debranding/compose.test.yml`), fuera del repo `Branding_web_sidebar`.
+
+**Por qué:** el módulo debe ser portable e instalable en CUALQUIER base de datos Odoo 19 con `-u erpico_web_sidebar`. `compose.test.yml` referencia rutas locales (`../erpico_debranding`, `build: ../../`) que solo existen en este entorno y no tienen sentido en un repositorio genérico del módulo.
+
+**Consecuencias:**
+- El repo `Branding_web_sidebar` contiene SOLO el módulo (JS/XML/SCSS/manifest) + `specs/` (documentación de desarrollo).
+- El stack de test (`compose.test.yml` + `Dockerfile`) vive en el proyecto de desarrollo, fuera del repo del módulo.
+- `mass_mailing` es dependencia del compose.test.yml (QA), NO del `__manifest__.py`.
