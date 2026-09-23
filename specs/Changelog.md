@@ -39,6 +39,8 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
 ### Pendiente
 - **Fase 2** — M4 drawer + footer: S-004 (listener `erpico:open-drawer`), S-005 (template+SCSS drawer), S-006 (`SwitchCompanyMenu` real), S-007 (xmlid Ajustes ya confirmado; `goToSettings` OK).
 - Fases 3–6 restantes. Al editar JS: ver D-23 (restart para refrescar bundle).
+- **Push al repo `Branding_web_sidebar`** realizado: commits `b2f81a4` + `feb992a` en `origin/master` (2026-09-23).
+- **Bug encontrado y corregido en compose.test.yml**: `--addons-path=/mnt/extra-addons` sola sombrea los módulos stock de Odoo (ej. `mass_mailing`). Corrección: `--addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons`. Sin esto, `docker compose up -i mass_mailing` falla al instalar.
 
 ---
 
