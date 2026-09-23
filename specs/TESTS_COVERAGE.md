@@ -48,7 +48,7 @@ Edge headless + CDP contra `http://localhost:8071` (patrón validado en
 | C9 | Fullscreen report → sidebar oculta; salir → restaura | S-011 | ✅ CDP: cdp_fullscreen.js — `/odoo/action-567` (action window `target=fullscreen` real, rg "Pick a Theme") → sidebar `display:none` (class fullscreen-hidden); navegar a `/odoo` restaura. Descubrió y corrigió S-018 |
 | C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ✅ navbar renderiza; resto visual → manual |
 | C11 | Drawer cierra al navegar (app/submenu) | S-013 | ✅ CDP: cdp_drawer_nav.js |
-| C12 | Margin-left contenido no se acumula con rail | R2 | ✅ CDP: cdp_layout.js — sin acumulación (nota: sidebar `display:none` a 1024px es del entorno Odoo, no del módulo) |
+| C12 | Margin-left contenido no se acumula con rail | R2 | ✅ CDP: cdp_layout.js — sin acumulación. ⚠️ **BUG-S-020:** el test no llama `setViewport` → hereda 800×600 → sidebar `display:none` (breakpoint d-lg-flex ≥992); informe falso "sidebar oculto a 1024px". Con viewport real 1024: sidebar visible 60px, rail OK, R2 OK |
 
 ## 2A. Scripts CDP (Fase 5)
 
@@ -58,10 +58,11 @@ Scripts en `cdp/`:
 - `cdp_settings.js` — BUG-S-012: Ajustes navega en móvil (C8) ✅
 - `cdp_drawer_nav.js` — drawer cierra al navegar (C11 / S-013) ✅
 - `cdp_hover.js` — hover flyout estable por coordenadas reales (C3 / S-014) ✅
-- `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto)
+- `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto). ⚠️ BUG-S-020: sin `setViewport` → falsa alarma breakpoint a 800px
 - `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra por coordenadas (C6) ✅
 - `cdp_matrix.js` — matriz manual automatizada: admin/ventas/basic landing + rail, drawer + SwitchCompany + Escape, teclado ✅
 - `cdp_fullscreen.js` — fullscreen action real → sidebar oculta/restaura + navbar core (C9 / S-011a / S-018) ✅
+- `cdp_smoke.js` — ⚠️ BUG-S-020: cuenta `.o_erpico_rail_btn` con `$$` (presencia DOM, no visibilidad) en viewport 800×600 → rail no visible; green no prueba visibilidad
 
 Ejecución:
 ```bash

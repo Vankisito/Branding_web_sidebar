@@ -7,6 +7,10 @@
     * QA: Fase 5 completa — CDP C1-C8 + C11/C12, matriz manual automatizada (cdp_matrix.js)
     * QA: regresión erpico_debranding ejecutada (BUG-S-017: fallos de entorno, el sidebar no rompe la suite)
     * Chore: bugs S-001…S-016 resueltos y documentados en Bugs.md / Bug-hunt Fase 5
+    * QA: Bug-hunt Fase 6 — detectados (sin fix, documentados en Bugs.md): S-019 (flyout cierra con mouse dentro),
+      S-020 (tests CDP layout/smoke con viewport default 800px → falsa alarma / sin validar visibilidad),
+      S-021 (gap 769-991px sin acceso a apps), S-022 (drawer móvil excluye otherApps)
+    * QA: riesgos medios/bajos documentados en spec §9.1 (R-M1..R-M3, R-L1..R-L6)
 
 .. changelog:: 19.0.1.0.1
 

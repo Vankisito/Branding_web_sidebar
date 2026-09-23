@@ -5,6 +5,24 @@
 
 ---
 
+## Sesión 2026-09-23 — Bug-hunt Fase 6: detección de bugs y riesgos (sin fix)
+
+### Qué se hizo
+
+Análisis de código + tests CDP nuevos sobre `sidebar_test` para **detectar** bugs y riesgos. Por directriz del usuario: **descubrir, no solucionar**. Todo documentado.
+
+**Bugs nuevos detectados (Bugs.md):**
+- **BUG-S-019 (Media):** flyout se cierra al mover el mouse dentro. Timer 180ms de `clearHover()` no cancelado por `mouseenter` del flyout (`sidebar.xml:72` / `sidebar.js`). Reproducido con probe CDP (`_probe_flyout.js`, mouse dentro flyout +600ms → flyout ausente).
+- **BUG-S-020 (Media, test infra):** `cdp_layout.js`/`cdp_smoke.js` sin `page.setViewport` → heredan 800×600 (default Puppeteer) → sidebar `display:none` (`d-lg-flex` ≥992). Falsa alarma "sidebar oculto a 1024px". Verificado: viewport real 1024 → sidebar visible 60px, rail OK, R2 OK. `cdp_smoke.js` cuenta `.o_erpico_rail_btn` con `$$` (DOM, no visibilidad) → no prueba visibilidad.
+- **BUG-S-021 (Media):** gap breakpoints 769-991px — sidebar oculto (`d-lg-flex`) Y toggle oculto (`max-width:768`) → **sin acceso a apps**. Reproducido (768/800/991/992/1024px probe).
+- **BUG-S-022 (Baja):** drawer móvil itera solo `state.railApps`; `otherApps` (mass_mailing "Email Marketing", "Apps") inaccesibles en móvil. Probes: drawer 11 apps, allApps 13, rail 11.
+
+**Diagnóstico confirmado:** layout test C12 era falso negativo; R2 real OK (1024px: sidebar flex 60px, action_manager margin 60px).
+
+Archivos modificados: `specs/Bugs.md` (S-019..S-022), `specs/spec-web-sidebar-v1.md` §9.1 (riesgos R-M1..R-M3, R-L1..R-L6), `specs/TESTS_COVERAGE.md` (C12 + scripts), `readme/CHANGELOG.rst` (entrada QA Fase 6). Probes temporales eliminados.
+
+---
+
 ## Sesión 2026-09-23 — Fase 5 cierre: matriz manual + regresión debranding
 
 ### Qué se hizo

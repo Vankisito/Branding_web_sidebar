@@ -312,3 +312,20 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 4. ~~Iconos Contactos/Sitio web sin brand~~ → ✅ brand + `i-building`/`i-globe`/ico `webIconData` fallback definido (D-11); Contactos usa brand.
 5. Fusión con `erpico_debranding` → ✅ regresión ejecutada (BUG-S-017): el sidebar **no interfiere**; fallos de la suite son preexistentes del build/local (assets frontend + `sale_order.picking_policy`).
 6. ~~Menú root de Dashboards community vs enterprise~~ → ✅ `spreadsheet_dashboard` community instalado y verificado (landing + rail).
+
+### 9.1 Riesgos nuevos (Fase 6 cierre — análisis de código + CDP)
+
+**Riesgos medios:**
+
+- **R-M1 — Breakpoints sin navegación (BUG-S-021):** sidebar visible solo ≥992px, toggle drawer solo ≤768px → **769-991px sin acceso a apps**. Impacta tablets portrait y ventanas Android/Windows medianas. Reproducido (viewports 800/991px: sidebar `none` + toggle `none`). Fix requerido (p.ej. unificar breakpoint del drawer a `<992px`).
+- **R-M2 — Flyout se cierra con el ratón dentro (BUG-S-019):** el `mouseleave` del botón rail arranca timer 180ms no cancelado por `mouseenter` del flyout → submenús no clicables con mouse (teclado sí). UX rota en desktop.
+- **R-M3 — Falso negativo de tests CDP (BUG-S-020):** `cdp_layout.js`/`cdp_smoke.js` usan viewport default 800×600 → `cdp_layout.js` reporta sidebar oculto cuando es breakpoint, no bug. `cdp_smoke.js` no valida visibilidad real (cuenta DOM). Resultados green no prueban visibilidad a <992px.
+
+**Riesgos bajos:**
+
+- **R-L1 — Drawer móvil excluye `otherApps` (BUG-S-022):** apps sin icono brand (Email Marketing, Apps) inaccesibles en móvil. Mitigación: agregarlas al drawer o al APP_MAP.
+- **R-L2 — `otherApps` dependen del entorno:** apps instaladas fuera del APP_MAP (13 apps D-20) aparecen en `otherApps` y se ven en panel all-apps. Si el cliente instala más apps sin brand, el rail no las muestra (comportamiento esperado por spec).
+- **R-L3 — Gaps responsivos menores:** 769-991px oculta el rail pero mantiene topbar; 768px exacto tiene ambas vías (toggle + sidebar oculto). Consistente con mockup en ≤768 solo drawer.
+- **R-L4 — Action ID 567 fijo en test fullscreen (`/odoo/action-567`):** depende de `rg.wizard_to_theme` de Odoo 19; si cambia en upgrade, `cdp_fullscreen.js` se rompe. No afecta módulo (test-only).
+- **R-L5 — Debranding coexistente (BUG-S-017):** 3/22 fallos de la suite `erpico_debranding` son preexistentes (assets frontend, `sale_order.picking_policy`), no del sidebar. Re-validar tras próxima reconstrucción del entorno.
+- **R-L6 — Tests CDP con coordinadas absolutas (viewport 1600×900, `getBoundingClientRect`):** frágiles a cambios de layout CSS; versiones Odoo futuras pueden romperlos. Tests de respaldo: smoke + drawer siguen pasando con DOM.
