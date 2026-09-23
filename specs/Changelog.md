@@ -98,11 +98,12 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
 - `ca55e03` — docs spec (Fase 3 §2+§5.4 + Fase 4 verificación)
 
 ### Pendiente
+- **BUG-S-011 resuelto** (29fa4bb): `readme/CHANGELOG.rst` OCA fragment creado, `margin-left` selectores amplios, QUnit/tour → v2 fuera de alcance
 - Fase 5 QA CDP + matriz manual + regresión debranding (requiere Docker Desktop)
 
 ---
 
-## Sesión 2026-09-23 — Fase 2: M4 drawer + footer (S-004/S-005/S-006/S-007)
+## Sesión 2026-09-23 — Fase 5: QA CDP
 
 ### Qué se hizo
 - **BUG-S-004 (toggle móvil):** `Sidebar.setup()` escucha `env.bus "erpico:open-drawer"` → `_openDrawer()`. `onWillUnmount` limpia el listener. `toggleDrawer()` solo dispara el bus.
