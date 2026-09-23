@@ -32,9 +32,15 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 
 | ID | Fecha | Vista / Origen | Descripción | Tipo | Prioridad | Estado |
 |----|-------|----------------|-------------|------|-----------|--------|
+| BUG-S-012 | 2026-09-23 | Footer drawer → "Ajustes" (móvil) | En viewport 375px, click `Ajustes` cierra el drawer pero **no navega**: URL queda en `/odoo/dashboards?dashboard_id=3`, body casi vacío (43 chars). Pendiente investigar: `goToSettings()` corre (drawer cierra) pero `selectMenu(leaf)` no cambia la vista. Falta verificar resolución de `getMenu("base.menu_administration")` y `_resolveLeaf` en runtime móvil. | Lógica | 🟠 Alta | Abierto |
 | BUG-S-011 | 2026-09-23 | Spec §5.8 / §5.3 pendientes | Falta: fullscreen-hide (`ACTION_MANAGER:UI-UPDATED`), delay 180ms de cierre de flyout, a11y teclado (flechas), tests QUnit/tour, `readme/CHANGELOG.rst` (fragment OCA). Verificar selector de `margin-left` del contenido (`.o_main`) en Odoo 19. | UI/UX | ⚪ Baja | Abierto |
 
 ### Detalle de bugs abiertos
+
+**BUG-S-012 — "Ajustes" no navega en móvil (drawer footer)**
+- *Contexto:* `goToSettings()` usa `_resolveLeaf(getMenu("base.menu_administration"))` + `selectMenu(leaf)`. Desktop F1 se dio por resuelto por inspección de código, pero runtime móvil (375px) muestra que el drawer cierra → la función corre → pero la URL no cambia y body queda casi vacío.
+- *Hipótesis:* (a) `getMenu("base.menu_administration")` devuelve null en móvil; (b) `_resolveLeaf` devuelve menú sin `actionID`; (c) `selectMenu` dispara pero el action manager en vista móvil no renderiza; (d) navigación requiere URL/hash distinto y el test mide mal.
+- *Siguiente paso:* dump en runtime de `menuService.getMenu("base.menu_administration")`, depurar `_resolveLeaf`, comparar móvil vs desktop.
 
 **BUG-S-001 — Template del sidebar vaciado**
 - *Origen:* diff working tree sin commitear (`git diff` 2026-09-23): `-144 líneas` en `sidebar.xml`.

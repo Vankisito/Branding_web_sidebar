@@ -55,16 +55,22 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
   - Backdrop: overlay con `click`→cierra drawer.
   - **Escape** cierra drawer/flyout/allApps (`window.keydown` en `onMounted`, cleanup en `onWillUnmount`).
 - **BUG-S-006 (Cambiar empresa):** eliminado `goToCompany()`. `SwitchCompanyMenu` real (`@web/webclient/switch_company_menu/switch_company_menu`) renderizado en footer del drawer.
-- **BUG-S-007 (Ajustes):** `goToSettings()` ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` — confirmado funcional.
+- **BUG-S-007 (Ajustes):** `goToSettings()` ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` — pendiente verificar runtime móvil (S-012).
+- **fix escapar XML:** `&&` en `t-if` → `&amp;&amp;` (XML parse error `xmlParseEntityRef`).
+- **fix `_openDrawer` bind:** el handler por EventBus perdía `this` (componente); bind en setup.
+- **fix Escape:** keydown bubble no llegaba a window (stopPropagation Odoo en capture); `addEventListener("keydown", fn, true)` capture phase lo resuelve.
 - **sidebar.scss:** `.o_erpico_backdrop`, `.o_erpico_drawer`, `.o_erpico_drawer_*` con transiciones 300ms (chalk/obsidian).
 - **sidebar.js:** importa `SwitchCompanyMenu`, `static components`, `onMounted`/`onWillUnmount`, `_openDrawer`/`_closeDrawer`/`_onKeyDown`.
 
 ### Tests
-- Pendiente CDP: drawer abre/cierra, backdrop, Escape, SwitchCompanyMenu, Ajustes navega.
+- **CDP drawer móvil (375px)** — `cdp_drawer.js`: toggle encontrado ✓, drawer abre ✓ (backdrop, 11 apps, 36 subitems, footer, Ajustes, SwitchCompanyMenu `My Company` como `.o-dropdown`), backdrop cierra ✓, **0 errores consola**.
+- **Escape fix (bug real encontrado):** keydown en bubble NO llega a window (Odoo hace stopPropagation en capture). Fix: `window.addEventListener("keydown", fn, true)` fases capture → CDP `rawKeyDown` cierra drawer ✓ (`cdp_settings.js`: `drawerOpenAfterRawEsc: false`).
+- **Pendiente S-012:** Ajustes no navega en móvil (URL queda en dashboards, body 43 chars). Ver BUG-S-012.
 
 ### Pendiente
-- CDP: validar drawer viewport 375px.
-- Fase 3: APP_MAP confirmación (xmlids ya verificados).
+- **S-012: debug Ajustes móvil** (dump `getMenu("base.menu_administration")` runtime, comparar desktop).
+- CDP: validar drawer viewport 375px completo (navegación app desde drawer), switch company dropdown abre.
+- Fase 3: APP_MAP confirmación.
 - Fase 4: hardening S-009...S-011.
 
 ---

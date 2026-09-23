@@ -51,7 +51,7 @@ anteriores.
 | M1 topbar brand + systray | ✅ | validado runtime (CDP: `.o_main_navbar` presente, 0 errores) |
 | M2 rail + flyout + allApps | ✅ | restaurado (S-001) + validado (rail 12 botones) |
 | M3 landing admin → Dashboards | ✅ | `landing_patch.js` (D-24) — login → `/odoo/dashboards` |
-| M4 drawer + footer | 🟡 | JS a medias, sin template/SCSS (S-004/005/006) → Fase 2 |
+| M4 drawer + footer | 🟡 | Drawer funcional (abre/cierra/backdrop/Escape) ✅; **S-012 pendiente** (Ajustes móvil no navega) → Fase 2 |
 | M5 QA + docs | 🟡 | CDP básico ✅ (F0/F1); matriz manual + regresión debranding → Fase 5 |
 
 ---
@@ -99,19 +99,19 @@ anteriores.
 ---
 
 ### Fase 2 — M4 drawer mobile + footer (S-004, S-005, S-006)
-- [ ] Template drawer en `sidebar.xml` (encima del M2 restaurado, sin borrar):
+- [x] Template drawer en `sidebar.xml` (encima del M2 restaurado, sin borrar):
   - `t-if` drawer abierto: panel (logo, acordeón apps con `childrenTree`, footer), backdrop con click→cierra.
-  - `Escape` cierra drawer/flyout/allApps.
-- [ ] **S-004:** listener `env.bus "erpico:open-drawer"` en `Sidebar.setup()` + cleanup en `onWillUnmount`; `toggleDrawer()` solo dispara bus.
-- [ ] SCSS: `.o_erpico_drawer`, `.o_erpico_backdrop`, transiciones (300–320px, marca chalk/obsidian según mockup).
-- [ ] **S-006:** `SwitchCompanyMenu` real en footer rail/drawer; eliminar `goToCompany()`.
-- [ ] **S-007:** `goToSettings()` → `_resolveLeaf(getMenu(...))`; confirmar xmlid de Ajustes en dump.
+  - `Escape` cierra drawer/flyout/allApps (capture phase — ver S-005 detalle).
+- [x] **S-004:** listener `env.bus "erpico:open-drawer"` en `Sidebar.setup()` + cleanup en `onWillUnmount`; `toggleDrawer()` solo dispara bus. (fix extra: `_openDrawer` bindeado)
+- [x] SCSS: `.o_erpico_drawer`, `.o_erpico_backdrop`, transiciones (300ms, chalk/obsidian).
+- [x] **S-006:** `SwitchCompanyMenu` real en footer drawer; eliminado `goToCompany()`.
+- [x] **S-007:** `goToSettings()` ya usa `_resolveLeaf(getMenu("base.menu_administration"))` — **pendiente verificación runtime móvil (S-012)**.
 
 **Checklist Fase 2 (viewport 375px):**
-- [ ] Toggle topbar abre drawer; backdrop cierra; Escape cierra
-- [ ] Acordeón navega a submenús (`selectMenu`)
-- [ ] Cambiar empresa abre el dropdown nativo de empresas
-- [ ] Ajustes navega a Settings
+- [x] Toggle topbar abre drawer; backdrop cierra; **Escape cierra** (capture keydown fix)
+- [x] Acordeón renderiza submenús (36 subitems); navegación pendiente verificar
+- [ ] Cambiar empresa abre el dropdown nativo de empresas (componente renderiza como `.o-dropdown`; abrir/cerrar pendiente)
+- [ ] Ajustes navega a Settings — **NO** (S-012 abierto: drawer cierra pero URL no cambia)
 
 ---
 
