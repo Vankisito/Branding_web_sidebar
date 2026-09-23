@@ -31,22 +31,21 @@ async function main() {
         await sleep(3000);
 
         await page.goto('http://localhost:8071/odoo', { waitUntil: 'networkidle0', timeout: 30000 });
-        await sleep(4000);
+        await sleep(6000);
 
         // Esperar rail
         await page.waitForSelector('.o_erpico_rail_btn', { timeout: 15000 });
         console.log('[A1] Login OK, rail montado');
 
-        // Click en el botón "Todas las aplicaciones" (footer del rail)
+        // Obtener el botón "Todas las aplicaciones" en footer del rail
         const allAppsBtn = await page.$('.o_erpico_rail_footer .o_erpico_rail_btn');
         if (!allAppsBtn) {
             console.log('  ❌ Botón allApps no encontrado');
             errors.push('AllApps button not found');
         } else {
-            const rect = await allAppsBtn.evaluate(el => el.getBoundingClientRect());
-            await page.mouse.move(rect.left + rect.width / 2, rect.top + rect.height / 2);
-            await page.mouse.down();
-            await page.mouse.up();
+            await allAppsBtn.hover({ force: true });
+            await sleep(200);
+            await allAppsBtn.click({ force: true });
             await sleep(1500);
             console.log('[A2] Click botón allApps');
         }
@@ -76,10 +75,9 @@ async function main() {
         // Clic en un item → debe cerrar panel
         const firstItem = await page.$('.o_erpico_allapps_grid li');
         if (firstItem) {
-            const rect = await firstItem.evaluate(el => el.getBoundingClientRect());
-            await page.mouse.move(rect.left + rect.width / 2, rect.top + rect.height / 2);
-            await page.mouse.down();
-            await page.mouse.up();
+            await firstItem.hover({ force: true });
+            await sleep(200);
+            await firstItem.click({ force: true });
             await sleep(2000);
             const panelStillOpen = await page.$('.o_erpico_allapps');
             const panelVisible = panelStillOpen && (await panelStillOpen.evaluate(el => el.offsetParent !== null));

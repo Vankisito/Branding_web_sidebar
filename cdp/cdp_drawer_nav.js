@@ -55,7 +55,9 @@ async function main() {
         // Click en una app del drawer (CRM)
         const drawerAppBtn = await page.$('.o_erpico_drawer_app_btn');
         if (drawerAppBtn) {
-            await drawerAppBtn.click();
+            await drawerAppBtn.hover({ force: true });
+            await sleep(200);
+            await drawerAppBtn.click({ force: true });
             await sleep(2000);
 
             const drawerAfterNav = await page.$('.o_erpico_drawer');
@@ -69,7 +71,9 @@ async function main() {
         // Click en submenu del drawer
         const drawerSub = await page.$('.o_erpico_drawer_sub li');
         if (drawerSub) {
-            await drawerSub.click();
+            await drawerSub.hover({ force: true });
+            await sleep(200);
+            await drawerSub.click({ force: true });
             await sleep(2000);
 
             const drawerAfterSub = await page.$('.o_erpico_drawer');
@@ -81,7 +85,9 @@ async function main() {
         // Click Ajustes (ya probado, debería cerrar)
         const settingsBtn = await page.$('.o_erpico_drawer_settings');
         if (settingsBtn) {
-            await settingsBtn.click();
+            await settingsBtn.hover({ force: true });
+            await sleep(200);
+            await settingsBtn.click({ force: true });
             await sleep(2000);
             const drawerAfterSettings = await page.$('.o_erpico_drawer');
             const drawerVisibleSettings = drawerAfterSettings && (await drawerAfterSettings.evaluate(el => el.offsetParent !== null));
