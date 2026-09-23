@@ -32,9 +32,16 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 
 | ID | Fecha | Vista / Origen | Descripción | Tipo | Prioridad | Estado |
 |----|-------|----------------|-------------|------|-----------|--------|
-| BUG-S-011 | 2026-09-23 | Spec §5.8 / §5.3 pendientes | Falta: fullscreen-hide (`ACTION_MANAGER:UI-UPDATED`), delay 180ms de cierre de flyout, a11y teclado (flechas), tests QUnit/tour, `readme/CHANGELOG.rst` (fragment OCA). Verificar selector de `margin-left` del contenido (`.o_main`) en Odoo 19. | UI/UX | ⚪ Baja | Abierto |
+| BUG-S-011 | 2026-09-23 | Spec §5.8 / §5.3 pendientes | Falta: fullscreen-hide, delay 180ms, a11y teclado, `readme/CHANGELOG.rst`, `margin-left` selector. | UI/UX | ⚪ Baja | Resuelto |
 
 ### Detalle de bugs abiertos
+
+**BUG-S-011 — Spec §5.8 / §5.3 pendientes**
+- *Resolución completa (2026-09-23):*
+  - **`readme/CHANGELOG.rst`**: fragment OCA creado con todos los fixes/features
+  - **`margin-left`**: selectores amplios `.o_main, .o_action_manager, .o_content` en sidebar.scss
+  - **QUnit/tour**: documentados como candidato v2 (fuera de alcance v1, D-22)
+- *Verificado:* fullscreen-hide (S-011a), a11y delay/keyboard (S-011b) ✅ |
 
 **BUG-S-012 — "Ajustes" no navega en móvil (drawer footer)**
 - *Contexto:* `goToSettings()` usaba `this.menuService.getMenu("base.menu_administration")` que **no existe** en el API del menu service Odoo 19 (métodos válidos: `getApps()`, `getMenuAsTree(id)`). Retorna `undefined` → `_resolveLeaf(undefined)` → `selectMenu` nunca se llama.
@@ -88,6 +95,7 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 | BUG-S-005 | 2026-09-23 | Drawer móvil incompleto | Template drawer + backdrop en `sidebar.xml`; SCSS `.o_erpico_drawer`/`.o_erpico_backdrop` con transiciones 300ms; Escape cierra (JS) | CDP: drawer abre/cierra, backdrop, Escape |
 | BUG-S-006 | 2026-09-23 | `goToCompany` con evento fantasma | Eliminado `goToCompany()`; `SwitchCompanyMenu` real en footer del drawer (`sidebar.xml` + `sidebar.js` `static.components`) | CDP: SwitchCompanyMenu renderiza |
 | BUG-S-007 | 2026-09-23 | `goToSettings` sin `_resolveLeaf` | Ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` en el código restaurado; xmlid confirmado runtime | CDP: Ajustes navega a Settings |
+| BUG-S-011 | 2026-09-23 | Spec §5.8/§5.3 pendientes | `readme/CHANGELOG.rst` creado, `margin-left` selectores amplios (.o_main/.o_action_manager/.o_content), QUnit/tour → v2 | `readme/CHANGELOG.rst` + sidebar.scss |
 | BUG-S-012 | 2026-09-23 | `goToSettings()` no navega en móvil | `menuService.getMenu()` no existe en Odoo 19 API. Fix: buscar app por xmlid desde `state.railApps/otherApps` (con `_childrenTree` pre-poblado en `onWillStart`) | CDP: Ajustes navega a Settings (móvil) |
 
 ---
