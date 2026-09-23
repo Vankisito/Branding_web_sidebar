@@ -46,8 +46,9 @@ async function main() {
             const btnTitle = await page.evaluate(el => el.getAttribute('title'), firstRailBtn);
             console.log(`  [H2] Primer botón: "${btnTitle}"`);
 
-            // Hover: flyout debe aparecer
-            await firstRailBtn.hover();
+            // Obtener coordenadas y hacer hover con mouse.move (evita "not clickable")
+            const rect = await firstRailBtn.evaluate(el => el.getBoundingClientRect());
+            await page.mouse.move(rect.left + rect.width / 2, rect.top + rect.height / 2);
             await sleep(800);
             const flyout = await page.$('.o_erpico_flyout');
             console.log(`  [H3] Hover "${btnTitle}" → flyout ${flyout ? 'visible' : 'NO visible'}`);
@@ -59,8 +60,9 @@ async function main() {
                 const secondBtn = allBtns[1];
                 const secondTitle = await page.evaluate(el => el.getAttribute('title'), secondBtn);
 
-                // Test: hover rápido al segundo botón
-                await secondBtn.hover();
+                // Test: hover rápido al segundo botón (mouse.move)
+                const rect2 = await secondBtn.evaluate(el => el.getBoundingClientRect());
+                await page.mouse.move(rect2.left + rect2.width / 2, rect2.top + rect2.height / 2);
                 await sleep(800);
                 const flyout2 = await page.$('.o_erpico_flyout');
                 console.log(`  [H4] Hover "${secondTitle}" inmediatamente → flyout ${flyout2 ? 'visible' : 'NO visible'}`);
@@ -74,7 +76,8 @@ async function main() {
                 // Test: mouseleave + mouseenter rápido
                 await page.mouse.move(0, 0);
                 await sleep(200);
-                await secondBtn.hover();
+                const rect2b = await secondBtn.evaluate(el => el.getBoundingClientRect());
+                await page.mouse.move(rect2b.left + rect2b.width / 2, rect2b.top + rect2b.height / 2);
                 await sleep(800);
                 const flyout3 = await page.$('.o_erpico_flyout');
                 console.log(`  [H6] mouseleave+hover rápido → flyout ${flyout3 ? 'visible (FIX OK)' : 'NO visible (BUG-S-014)'}`);

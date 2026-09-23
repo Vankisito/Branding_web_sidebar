@@ -31,7 +31,7 @@ async function main() {
         await sleep(3000);
 
         await page.goto('http://localhost:8071/odoo', { waitUntil: 'networkidle0', timeout: 30000 });
-        await sleep(4000);
+        await sleep(6000);
 
         // Esperar que el sidebar esté montado
         await page.waitForSelector('.o_erpico_sidebar', { timeout: 15000 });

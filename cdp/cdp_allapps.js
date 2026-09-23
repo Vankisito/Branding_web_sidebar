@@ -43,7 +43,10 @@ async function main() {
             console.log('  ❌ Botón allApps no encontrado');
             errors.push('AllApps button not found');
         } else {
-            await allAppsBtn.click();
+            const rect = await allAppsBtn.evaluate(el => el.getBoundingClientRect());
+            await page.mouse.move(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            await page.mouse.down();
+            await page.mouse.up();
             await sleep(1500);
             console.log('[A2] Click botón allApps');
         }
@@ -73,7 +76,10 @@ async function main() {
         // Clic en un item → debe cerrar panel
         const firstItem = await page.$('.o_erpico_allapps_grid li');
         if (firstItem) {
-            await firstItem.click();
+            const rect = await firstItem.evaluate(el => el.getBoundingClientRect());
+            await page.mouse.move(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            await page.mouse.down();
+            await page.mouse.up();
             await sleep(2000);
             const panelStillOpen = await page.$('.o_erpico_allapps');
             const panelVisible = panelStillOpen && (await panelStillOpen.evaluate(el => el.offsetParent !== null));
