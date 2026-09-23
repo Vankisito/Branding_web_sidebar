@@ -46,7 +46,30 @@ Evidencia de instrumentación temporal (`[LANDING]`): `apps=12 hasApps=true firs
 
 ---
 
-## Sesión 2026-09-23 — Auditoría de estado + plan de acción + documentación
+## Sesión 2026-09-23 — Fase 2: M4 drawer + footer (S-004/S-005/S-006/S-007)
+
+### Qué se hizo
+- **BUG-S-004 (toggle móvil):** `Sidebar.setup()` escucha `env.bus "erpico:open-drawer"` → `_openDrawer()`. `onWillUnmount` limpia el listener. `toggleDrawer()` solo dispara el bus.
+- **BUG-S-005 (drawer M4):** Template drawer + backdrop en `sidebar.xml` (`t-if="state.drawerOpen"`):
+  - Drawer panel: logo ERPICO, acordeón de apps con `childrenTree`, footer con `SwitchCompanyMenu` + botón Ajustes.
+  - Backdrop: overlay con `click`→cierra drawer.
+  - **Escape** cierra drawer/flyout/allApps (`window.keydown` en `onMounted`, cleanup en `onWillUnmount`).
+- **BUG-S-006 (Cambiar empresa):** eliminado `goToCompany()`. `SwitchCompanyMenu` real (`@web/webclient/switch_company_menu/switch_company_menu`) renderizado en footer del drawer.
+- **BUG-S-007 (Ajustes):** `goToSettings()` ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` — confirmado funcional.
+- **sidebar.scss:** `.o_erpico_backdrop`, `.o_erpico_drawer`, `.o_erpico_drawer_*` con transiciones 300ms (chalk/obsidian).
+- **sidebar.js:** importa `SwitchCompanyMenu`, `static components`, `onMounted`/`onWillUnmount`, `_openDrawer`/`_closeDrawer`/`_onKeyDown`.
+
+### Tests
+- Pendiente CDP: drawer abre/cierra, backdrop, Escape, SwitchCompanyMenu, Ajustes navega.
+
+### Pendiente
+- CDP: validar drawer viewport 375px.
+- Fase 3: APP_MAP confirmación (xmlids ya verificados).
+- Fase 4: hardening S-009...S-011.
+
+---
+
+## Sesión 2026-09-23 — Fases 0–1 completadas (stack Docker + bugs críticos)
 
 ### Qué se hizo
 Auditoría completa del módulo (1 commit `7091cf9` + working tree sucio) contra

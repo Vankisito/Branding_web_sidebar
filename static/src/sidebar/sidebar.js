@@ -1,20 +1,15 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState, useRef } from "@odoo/owl";
+import { Component, onWillStart, onMounted, onWillUnmount, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { SwitchCompanyMenu } from "@web/webclient/switch_company_menu/switch_company_menu";
 
 const BRAND_ICON = (name) =>
     `/erpico_web_sidebar/static/src/icons/${name}.svg`;
 const SPRITE = (id) =>
     `/erpico_web_sidebar/static/src/icons/ui-sprite.svg#${id}`;
 
-/**
- * D-12: orden y branding por app (raíz de menús Odoo 19 válida).
- * `kind: img`  -> <img src>  (SVG marca ERPICO)
- * `kind: sprite` -> <svg><use> (ui-sprite, símbolos UI)
- * XMLIDs verificados contra dump runtime de `menuService.getApps()`.
- */
 export const APP_MAP = [
     { xmlid: "spreadsheet_dashboard.spreadsheet_dashboard_menu_root", icon: { kind: "sprite", src: SPRITE("i-dashboard") } },
     { xmlid: "contacts.menu_contacts", icon: { kind: "sprite", src: SPRITE("i-building") } },
@@ -33,6 +28,7 @@ export const APP_MAP = [
 
 export class Sidebar extends Component {
     static template = "erpico_web_sidebar.Sidebar";
+    static components = { SwitchCompanyMenu };
     static props = {};
 
     setup() {
@@ -48,6 +44,7 @@ export class Sidebar extends Component {
             drawerOpen: false,
         });
         this._onAppChanged = this._onAppChanged.bind(this);
+        this._onKeyDown = this._onKeyDown.bind(this);
 
         onWillStart(async () => {
             const apps = this.menuService.getApps();
@@ -68,7 +65,6 @@ export class Sidebar extends Component {
                 const mapped = iconsByXmlid.has(app.xmlid) ? rail : other;
                 mapped.push(app);
             }
-            // rail: orden del APP_MAP (los encontrados)
             const byXmlid = new Map(rail.map((a) => [a.xmlid, a]));
             this.state.railApps = APP_MAP.map(({ xmlid }) => byXmlid.get(xmlid)).filter(
                 Boolean
@@ -79,6 +75,14 @@ export class Sidebar extends Component {
         });
 
         this.env.bus.addEventListener("MENUS:APP-CHANGED", this._onAppChanged);
+        this.env.bus.addEventListener("erpico:open-drawer", this._openDrawer);
+        onMounted(() => {
+            window.addEventListener("keydown", this._onKeyDown);
+        });
+        onWillUnmount(() => {
+            this.env.bus.removeEventListener("erpico:open-drawer", this._openDrawer);
+            window.removeEventListener("keydown", this._onKeyDown);
+        });
     }
 
     _currentAppId() {
@@ -88,6 +92,28 @@ export class Sidebar extends Component {
 
     _onAppChanged() {
         this.state.activeAppId = this._currentAppId();
+    }
+
+    _onKeyDown(ev) {
+        if (ev.key === "Escape") {
+            if (this.state.drawerOpen) {
+                this._closeDrawer();
+            } else if (this.state.allAppsOpen) {
+                this.state.allAppsOpen = false;
+            } else if (this.state.flyoutApp) {
+                this.state.flyoutApp = null;
+            }
+        }
+    }
+
+    _openDrawer() {
+        this.state.drawerOpen = true;
+    }
+
+    _closeDrawer() {
+        this.state.drawerOpen = false;
+        this.state.flyoutApp = null;
+        this.state.allAppsOpen = false;
     }
 
     /** Nodo accionable: raíz con acción o primer hoja del árbol. */
@@ -136,13 +162,6 @@ export class Sidebar extends Component {
         if (leaf) {
             this.menuService.selectMenu(leaf);
         }
-        this.state.drawerOpen = false;
-    }
-
-    /** Ir a Cambiar de empresa */
-    goToCompany() {
-        const action = this.env.services.action;
-        action.doAction("base.action_res_companies");
         this.state.drawerOpen = false;
     }
 

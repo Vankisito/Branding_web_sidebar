@@ -32,11 +32,7 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 
 | ID | Fecha | Vista / Origen | Descripción | Tipo | Prioridad | Estado |
 |----|-------|----------------|-------------|------|-----------|--------|
-| BUG-S-004 | 2026-09-23 | Topbar (`navbar.xml` toggle) → Sidebar | El botón hamburguesa dispara `this.env.bus.trigger('erpico:open-drawer')` pero **nadie escucha** ese evento en `Sidebar` → botón muerto. | Lógica | 🟠 Alta | Abierto |
-| BUG-S-005 | 2026-09-23 | M4 drawer mobile | Drawer incompleto: existe `state.drawerOpen` y `toggleDrawer()` en JS, pero **no hay template** de drawer ni backdrop, ni estilos SCSS drawer. M4 no funcional. | UI/UX | 🟠 Alta | Abierto |
-| BUG-S-006 | 2026-09-23 | Footer rail → "Cambiar empresa" | `goToCompany()` dispara `switch_company_menu:open` — evento inexistente; `SwitchCompanyMenu` core no lo escucha → botón muerto. Spec D-15/§5.3 pide renderizar el componente `SwitchCompanyMenu` real en el footer. | Lógica | 🟠 Alta | Abierto |
-| BUG-S-007 | 2026-09-23 | Footer rail → "Ajustes" | `goToSettings()` usa `getMenu("base.menu_administration")` sin confirmar xmlid (spec riesgo #2) y llama `selectMenu()` directo sin `_resolveLeaf()` → si el menú es root sin `actionID` no navega. | Lógica | 🟡 Media | Abierto |
-| BUG-S-011 | 2026-09-23 | Spec §5.8 / §5.3 pendientes | Falta: fullscreen-hide (`ACTION_MANAGER:UI-UPDATED`), delay 180ms de cierre de flyout, `Escape`, a11y teclado (flechas), tests QUnit/tour, `readme/CHANGELOG.rst` (fragment OCA). Verificar selector de `margin-left` del contenido (`.o_main`) en Odoo 19. | UI/UX | ⚪ Baja | Abierto |
+| BUG-S-011 | 2026-09-23 | Spec §5.8 / §5.3 pendientes | Falta: fullscreen-hide (`ACTION_MANAGER:UI-UPDATED`), delay 180ms de cierre de flyout, a11y teclado (flechas), tests QUnit/tour, `readme/CHANGELOG.rst` (fragment OCA). Verificar selector de `margin-left` del contenido (`.o_main`) en Odoo 19. | UI/UX | ⚪ Baja | Abierto |
 
 ### Detalle de bugs abiertos
 
@@ -82,7 +78,11 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 | BUG-S-003 | 2026-09-23 | `useService("bus")` inexistente → setup crashea | Quitado; `this.env.bus` en su lugar | CDP: componente monta, rail visible |
 | BUG-S-008 | 2026-09-23 | APP_MAP fuera de spec D-19 | Actualizado a **D-20** (13 apps), xmlids confirmados contra `menuService.getApps()` runtime (Contactos, CRM, POS, Compras, Facturación, Inventario, Website, Load E-commerce, Discuss, Calendario, Ajustes confirmados; `sale.sale_menu_root` existe pero **no es app root** en `load_menus` → rail 12/13) | CDP dump `getApps()`; rail 12 botones |
 | BUG-S-009 | 2026-09-23 | `menuService.reload()` dudoso + guard innecesario | Verificado: `reload()` SÍ existe en Odoo 19 (`menu_service.js` fuente). Guard del `onWillStart` eliminado por innecesario (carga de menús ya resuelta antes) | Fuente core `menu_service.js`; smoke sin crash |
-| BUG-S-010 | 2026-09-23 | Manifest/asset sucio: `_patch.js` muerto, `data`, category, indentación | `category:'Productivity'`, `data: []`, `assets` indentado + incluye `landing_patch.js`; borrado `_patch.js`; `webclient_templates.xml` fuera de la ecuación | `-u` sin warnings de manifest |
+| BUG-S-010 | 2026-09-23 | Manifest/asset sucio | `category:'Productivity'`, `data: []`, `assets` indentado + incluye `landing_patch.js`; borrado `_patch.js` | `-u` sin warnings de manifest |
+| BUG-S-004 | 2026-09-23 | Toggle mobile sin listener | `Sidebar.setup()` escucha `env.bus "erpico:open-drawer"` (`_openDrawer`); `onWillUnmount` limpia listener | CDP: drawer abre al pulsar toggle |
+| BUG-S-005 | 2026-09-23 | Drawer móvil incompleto | Template drawer + backdrop en `sidebar.xml`; SCSS `.o_erpico_drawer`/`.o_erpico_backdrop` con transiciones 300ms; Escape cierra (JS) | CDP: drawer abre/cierra, backdrop, Escape |
+| BUG-S-006 | 2026-09-23 | `goToCompany` con evento fantasma | Eliminado `goToCompany()`; `SwitchCompanyMenu` real en footer del drawer (`sidebar.xml` + `sidebar.js` `static.components`) | CDP: SwitchCompanyMenu renderiza |
+| BUG-S-007 | 2026-09-23 | `goToSettings` sin `_resolveLeaf` | Ya usaba `_resolveLeaf(getMenu("base.menu_administration"))` en el código restaurado; xmlid confirmado runtime | CDP: Ajustes navega a Settings |
 
 ---
 
