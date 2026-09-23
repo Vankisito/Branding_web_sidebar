@@ -78,11 +78,11 @@ export class Sidebar extends Component {
         this.env.bus.addEventListener("MENUS:APP-CHANGED", this._onAppChanged);
         this.env.bus.addEventListener("erpico:open-drawer", this._openDrawer);
         onMounted(() => {
-            window.addEventListener("keydown", this._onKeyDown);
+            window.addEventListener("keydown", this._onKeyDown, true);
         });
         onWillUnmount(() => {
             this.env.bus.removeEventListener("erpico:open-drawer", this._openDrawer);
-            window.removeEventListener("keydown", this._onKeyDown);
+            window.removeEventListener("keydown", this._onKeyDown, true);
         });
     }
 
