@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, useState, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
@@ -16,38 +16,19 @@ const SPRITE = (id) =>
  * XMLIDs verificados contra dump runtime de `menuService.getApps()`.
  */
 export const APP_MAP = [
-    {
-        xmlid: "spreadsheet_dashboard.spreadsheet_dashboard_menu_root",
-        icon: { kind: "sprite", src: SPRITE("i-dashboard") },
-    },
-    {
-        xmlid: "point_of_sale.menu_point_root",
-        icon: { kind: "img", src: BRAND_ICON("brand-punto-de-venta") },
-    },
-    {
-        xmlid: "account.menu_finance",
-        icon: { kind: "img", src: BRAND_ICON("brand-facturacion") },
-    },
-    {
-        xmlid: "purchase.menu_purchase_root",
-        icon: { kind: "img", src: BRAND_ICON("brand-compras") },
-    },
-    {
-        xmlid: "stock.menu_stock_root",
-        icon: { kind: "img", src: BRAND_ICON("brand-inventario-ubicacion") },
-    },
-    {
-        xmlid: "mail.menu_root_discuss",
-        icon: { kind: "sprite", src: SPRITE("i-bell") },
-    },
-    {
-        xmlid: "base.menu_management",
-        icon: { kind: "sprite", src: SPRITE("i-store") },
-    },
-    {
-        xmlid: "base.menu_administration",
-        icon: { kind: "sprite", src: SPRITE("i-settings") },
-    },
+    { xmlid: "spreadsheet_dashboard.spreadsheet_dashboard_menu_root", icon: { kind: "sprite", src: SPRITE("i-dashboard") } },
+    { xmlid: "contacts.menu_contacts", icon: { kind: "sprite", src: SPRITE("i-building") } },
+    { xmlid: "crm.crm_menu_root", icon: { kind: "img", src: BRAND_ICON("brand-clientes-reportes") } },
+    { xmlid: "sale.sale_menu_root", icon: { kind: "img", src: BRAND_ICON("brand-pedidos-devoluciones") } },
+    { xmlid: "point_of_sale.menu_point_root", icon: { kind: "img", src: BRAND_ICON("brand-punto-de-venta") } },
+    { xmlid: "purchase.menu_purchase_root", icon: { kind: "img", src: BRAND_ICON("brand-compras") } },
+    { xmlid: "account.menu_finance", icon: { kind: "img", src: BRAND_ICON("brand-facturacion") } },
+    { xmlid: "stock.menu_stock_root", icon: { kind: "img", src: BRAND_ICON("brand-inventario-ubicacion") } },
+    { xmlid: "website.menu_website_configuration", icon: { kind: "sprite", src: SPRITE("i-globe") } },
+    { xmlid: "website_sale.menu_ecommerce", icon: { kind: "img", src: BRAND_ICON("brand-ecommerce-integrado") } },
+    { xmlid: "mail.menu_root_discuss", icon: { kind: "sprite", src: SPRITE("i-bell") } },
+    { xmlid: "calendar.mail_menu_calendar", icon: { kind: "sprite", src: SPRITE("i-calendar") } },
+    { xmlid: "base.menu_administration", icon: { kind: "sprite", src: SPRITE("i-settings") } },
 ];
 
 export class Sidebar extends Component {
@@ -56,6 +37,7 @@ export class Sidebar extends Component {
 
     setup() {
         this.menuService = useService("menu");
+        this.ui = useService("ui");
         this.state = useState({
             ready: false,
             railApps: [],
@@ -63,13 +45,11 @@ export class Sidebar extends Component {
             activeAppId: null,
             flyoutApp: null,
             allAppsOpen: false,
+            drawerOpen: false,
         });
         this._onAppChanged = this._onAppChanged.bind(this);
 
         onWillStart(async () => {
-            if (!this.menuService.getApps().length) {
-                await this.menuService.reload();
-            }
             const apps = this.menuService.getApps();
             const iconsByXmlid = new Map(
                 APP_MAP.map(({ xmlid, icon }) => [xmlid, icon])
@@ -142,6 +122,28 @@ export class Sidebar extends Component {
             this.menuService.selectMenu(leaf);
         }
         this.state.allAppsOpen = false;
+    }
+
+    toggleDrawer() {
+        this.state.drawerOpen = !this.state.drawerOpen;
+        this.env.bus.trigger("erpico:open-drawer");
+    }
+
+    /** Ir a Ajustes (configuración general) */
+    goToSettings() {
+        const settingsMenu = this.menuService.getMenu("base.menu_administration");
+        const leaf = settingsMenu ? this._resolveLeaf(settingsMenu) : undefined;
+        if (leaf) {
+            this.menuService.selectMenu(leaf);
+        }
+        this.state.drawerOpen = false;
+    }
+
+    /** Ir a Cambiar de empresa */
+    goToCompany() {
+        const action = this.env.services.action;
+        action.doAction("base.action_res_companies");
+        this.state.drawerOpen = false;
     }
 
     hoverApp(app) {

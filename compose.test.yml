@@ -1,0 +1,39 @@
+# Ubicación: raíz del repo `erpico_web_sidebar/compose.test.yml`.
+# Los volúmenes usan `../<addon>` porque los addons hermanos
+# (`erpico_debranding`, `erpico_web_sidebar`, …) viven dentro de
+# `Custom_addons/` (padre de este directorio).
+# Ejecutar desde aquí:
+#   docker compose -f compose.test.yml up -d --build
+services:
+  odoo_sidebar_test:
+    build: ../../
+    container_name: odoo_sidebar_test
+    depends_on:
+      - db_sidebar_test
+    ports:
+      - "8071:8069"
+    volumes:
+      - ../erpico_debranding:/mnt/extra-addons/erpico_debranding
+      - ../erpico_debranding_pos:/mnt/extra-addons/erpico_debranding_pos
+      - ../erpico_debranding_sale:/mnt/extra-addons/erpico_debranding_sale
+      - .:/mnt/extra-addons/erpico_web_sidebar
+      - odoo_sidebar_data:/var/lib/odoo
+    command: odoo --addons-path=/mnt/extra-addons -d sidebar_test -i erpico_debranding,erpico_debranding_pos,erpico_debranding_sale,erpico_web_sidebar,mass_mailing
+    environment:
+      - HOST=db_sidebar_test
+      - USER=odoo
+      - PASSWORD=odoo
+  db_sidebar_test:
+    image: postgres:17
+    container_name: db_sidebar_test
+    ports:
+      - "5440:5432"
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_sidebar_data:/var/lib/postgresql/data
+volumes:
+  odoo_sidebar_data:
+  db_sidebar_data:

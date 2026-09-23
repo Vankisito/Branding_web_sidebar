@@ -1,7 +1,7 @@
 {
     'name': 'ERPICO Web Sidebar',
     'version': '19.0.1.0.0',
-    'category': 'Hidden',
+    'category': 'Productivity',
     'summary': 'Tiendanube-style sidebar navigation and minimal topbar for Odoo 19',
     'description': """
 Navegación tipo Tiendanube para el backend de Odoo 19:
@@ -17,21 +17,20 @@ Todos los cambios se aplican por herencia de template, registry
 del seed, y todo es revertible con `-u`.
     """,
     'author': 'Habitat Digital',
-    'website': 'https://github.com/Vankisito/DebrandingERPICO',
+    'website': 'https://github.com/Vankisito/Branding_web_sidebar',
     'license': 'LGPL-3',
     'depends': [
         'web',
     ],
-    'data': [
-        'views/webclient_templates.xml',
-    ],
-'assets': {
+    'data': [],
+    'assets': {
         'web.assets_backend': [
             'erpico_web_sidebar/static/src/sidebar/sidebar.scss',
             'erpico_web_sidebar/static/src/sidebar/navbar.js',
             'erpico_web_sidebar/static/src/sidebar/navbar.xml',
             'erpico_web_sidebar/static/src/sidebar/sidebar.js',
             'erpico_web_sidebar/static/src/sidebar/sidebar.xml',
+            'erpico_web_sidebar/static/src/sidebar/landing_patch.js',
         ],
     },
     'demo': [],
