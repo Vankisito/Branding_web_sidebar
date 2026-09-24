@@ -34,6 +34,11 @@ obvios, añadir un bloque en *Detalle de bugs abiertos*. Al resolverlo, moverlo 
 |----|-------|----------------|-------------|------|-----------|--------|
 | BUG-S-017 | 2026-09-23 | Regresión debranding (Fase 5) | Suite `erpico_debranding` **falla 3 de 22** en stack `sidebar_test` — fallos **ajenos al módulo** (ver detalle abajo). | Entorno/build | ⚪ Baja | En progreso (rama debranding) |
 | BUG-S-022 | 2026-09-23 | Drawer móvil (sidebar.xml:144) | **Drawer móvil excluye `otherApps`.** Itera solo `state.railApps`; apps sin icono brand (ej. mass_mailing "Email Marketing", "Apps") caen en `otherApps` y quedan accesibles solo desde el panel "Todas las aplicaciones" (desktop). En móvil no hay panel all-apps → estas apps no navegables. | UI/UX | ⚪ Baja | Abierto |
+| BUG-S-029 | 2026-09-24 | CDP scripts (ops) | Credenciales hardcodeadas `admin/admin` y URL fija `localhost:8071` en `cdp/*.js`, visibles en repo GitHub público. Sin riesgo de runtime (test-only); riesgo de ops/secretos. Mitigación parcial: `.gitignore` no los cubre (es tooling propio). | Seguridad | ⚪ Baja | Abierto |
+| BUG-S-030 | 2026-09-24 | Topbar (navbar.xml:14) | Race de boot: `erpico:open-drawer` se trigger en `env.bus`; si el toggle se clickea antes de que `Sidebar.setup()` monte su listener, el evento se pierde (drawer no abre). Ventana pequeña (1 click). | Lógica | ⚪ Baja | Abierto |
+| BUG-S-031 | 2026-09-24 | Drawer móvil (sidebar.xml:164) | Drawer submenú solo **1 nivel**: itera `app._childrenTree` directo. El flyout es recursivo (t-call FlyoutMenu); apps con sub-submenús no muestran la profundidad en el drawer. | UI/UX | ⚪ Baja | Abierto |
+| BUG-S-032 | 2026-09-24 | Accesibilidad | Rail sin `aria-current`/`aria-expanded`; toggle móvil sin `aria-expanded`; drawer sin focus trap ni redirect de foco; flyout sin manejo de foco/`aria`; all-apps sin foco visible propio. | UI/UX | ⚪ Baja | Abierto |
+| BUG-S-033 | 2026-09-24 | Topbar/rail (logos) | Logos `<a href="/odoo">` (sidebar.xml:13, navbar.xml:19) navegan con recarga plana del webclient → pierde estado SPA (a diferencia de `selectMenu` del core con `href` + `.prevent`). | UI/UX | ⚪ Baja | Abierto |
 
 ### Detalle de bugs abiertos
 
