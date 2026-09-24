@@ -252,6 +252,7 @@
 - Eliminadas reglas CSS muertas (`.o_erpico_brand`, `.o_erpico_workspace_divider`, `.o_erpico_workspace_label`, `.o_erpico_heading`).
 - **Riesgo mitigado**: `.o_menu_systray` input/button/a y `.dropdown-item` forzados a `$erpico-chalk` para legibilidad sobre obsidian.
 - `__manifest__.py`: bump a `19.0.1.0.3`.
+- `.o_erpico_module_brand` color cambiado de `$erpico-horizon-strong` (visual morbado) a `$erpico-chalk` (blanco) para consistencia con brandbook.
 
 **Fecha:** 2026-09-23
 **Decidido por:** cliente (jefe)
