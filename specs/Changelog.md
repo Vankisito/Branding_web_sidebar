@@ -5,6 +5,27 @@
 
 ---
 
+## Sesión 2026-09-23 — Fix BUG-S-021 (breakpoints)
+
+### Qué se hizo
+
+**BUG-S-021:** gap 769-991px sin acceso a apps. El sidebar usa \d-lg-flex\ (visible ≥992px) pero el toggle móvil usa \@media (max-width:768px)\ (visible solo ≤768px). En el rango intermedio: sin sidebar Y sin toggle.
+
+**Fix en \sidebar.scss\: unificación del breakpoint**
+- \@media (max-width: 768px)\ → \@media (max-width: 991px)\ para el bloque del toggle, workspace divider/label, y module brand/breadcrumbs.
+- El toggle ahora es visible en todo viewport donde el sidebar está oculto (<992px).
+- El drawer (JS-driven) ya funciona a cualquier viewport — solo necesitaba el botón visible.
+
+### Archivos modificados
+- \static/src/sidebar/sidebar.scss\ — unificación breakpoint
+- \specs/Bugs.md\ — BUG-S-021 → Resuelto
+- \specs/spec-web-sidebar-v1.md\ — R-M1 → Resuelta
+
+### Estado al cierre
+- Bugs S-001…S-021 resueltos (S-022 y S-020 pendientes).
+
+---
+
 ## Sesión 2026-09-23 — Fix BUG-S-023 (topbar contexto módulo)
 
 ### Qué se hizo

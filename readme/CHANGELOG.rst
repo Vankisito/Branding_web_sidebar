@@ -13,6 +13,7 @@
     * QA: riesgos medios/bajos documentados en spec §9.1 (R-M1..R-M3, R-L1..R-L6)
     * Fix: flyout se cierra con mouse dentro — cancelación de timer en flyout enter (BUG-S-019)
     * Fix: topbar restaura contexto del módulo — brand, breadcrumbs, SectionsMenu (BUG-S-023 / D-28)
+    * Fix: breakpoints unificados — toggle visible <992px en vez de <768px, eliminando gap 769-991px sin navegación (BUG-S-021)
     * Docs: apuntes cliente anotados — BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
       BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
 

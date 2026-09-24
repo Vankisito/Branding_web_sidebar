@@ -88,8 +88,9 @@ $erpico-allapps-w: 360px;
         font-weight: 500;
     }
 
-    // Mobile: solo brand + toggle (sin rotulador de espacio)
-    @media (max-width: 768px) {
+    // Mobile / tablet: solo brand + toggle (sin rotulador de espacio)
+    // Breakpoint unificado con sidebar (d-lg-flex oculta el sidebar <992px)
+    @media (max-width: 991px) {
         .o_erpico_mobile_toggle {
             display: inline-flex;
             align-items: center;

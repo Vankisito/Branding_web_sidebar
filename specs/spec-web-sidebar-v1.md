@@ -336,7 +336,7 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 
 **Riesgos medios:**
 
-- **R-M1 — Breakpoints sin navegación (BUG-S-021):** sidebar visible solo ≥992px, toggle drawer solo ≤768px → **769-991px sin acceso a apps**. Impacta tablets portrait y ventanas Android/Windows medianas. Reproducido (viewports 800/991px: sidebar `none` + toggle `none`). Fix requerido (p.ej. unificar breakpoint del drawer a `<992px`).
+- - **R-M1 — Breakpoints sin navegación (BUG-S-021):** ~~sidebar visible solo ≥992px, toggle drawer solo ≤768px → **769-991px sin acceso a apps**~~ **Resuelto** con unificación del breakpoint a `max-width:991px` en `sidebar.scss`.
 - **R-M2 — Flyout se cierra con el ratón dentro (BUG-S-019):** ~~el `mouseleave` del botón rail arranca timer 180ms no cancelado por `mouseenter` del flyout → submenús no clicables con mouse (teclado sí).~~ **Resuelto** con `_cancelHoverTimer()` + `t-on-mouseenter` en flyout div.
 - **R-M3 — Falso negativo de tests CDP (BUG-S-020):** `cdp_layout.js`/`cdp_smoke.js` usan viewport default 800×600 → `cdp_layout.js` reporta sidebar oculto cuando es breakpoint, no bug. `cdp_smoke.js` no valida visibilidad real (cuenta DOM). Resultados green no prueban visibilidad a <992px.
 
