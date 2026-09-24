@@ -5,6 +5,34 @@
 
 ---
 
+## Sesión 2026-09-23 — Fix BUG-S-023 (topbar contexto módulo)
+
+### Qué se hizo
+
+**BUG-S-023 (D-28):** la topbar v1 solo mostraba logo ERPICO + systray, eliminando brand del módulo, breadcrumbs y secciones. Al entrar a un módulo faltaba orientación.
+
+**Fix en `navbar.xml` (solo template, sin JS):**
+- Restaurado brand del módulo actual (`currentApp.name`) como botón clickeable que navega a la raíz del módulo via `onNavBarDropdownItemSelection(currentApp)`.
+- Restaurado contenedor `.o_navbar_breadcrumbs` para breadcrumbs del core.
+- Restaurado `<t t-call="web.NavBar.SectionsMenu">` gateado por `!this.ui.isSmall and currentAppSections.length`.
+- **AppsMenu del core NO se restaura** — el rail/drawer ERPICO lo sustituye (D-20).
+- Systray + toggle mobile + ERPICO brand intactos.
+
+**Estilos en `sidebar.scss`:**
+- `.o_erpico_module_brand` — botón del nombre del módulo con tokens ERPICO.
+- `.o_navbar_breadcrumbs` — breadcrumbs con estilo muted, hidden en mobile.
+- Media query mobile (`max-width:768px`) oculta `.o_erpico_module_brand` y `.o_navbar_breadcrumbs`.
+
+### Archivos modificados
+- `static/src/sidebar/navbar.xml` — template con brand, breadcrumbs, SectionsMenu
+- `static/src/sidebar/sidebar.scss` — `.o_erpico_module_brand`, `.o_navbar_breadcrumbs`
+- `specs/Bugs.md` — BUG-S-023 → Resuelto
+
+### Estado al cierre
+- Bugs S-001…S-023 resueltos.
+
+---
+
 ## Sesión 2026-09-23 — Fix BUG-S-019 (flyout hover)
 
 ### Qué se hizo

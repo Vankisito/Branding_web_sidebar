@@ -99,6 +99,58 @@ $erpico-allapps-w: 360px;
         .o_erpico_workspace_label {
             display: none;
         }
+
+        .o_erpico_module_brand,
+        .o_navbar_breadcrumbs {
+            display: none;
+        }
+    }
+}
+
+// D-28 — Brand del módulo y breadcrumbs en topbar
+.o_erpico_module_brand {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: $erpico-horizon-strong;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Outfit', 'Work Sans', sans-serif;
+    cursor: pointer;
+    border-radius: $erpico-radius;
+
+    &:hover,
+    &:focus-visible {
+        background: $erpico-horizon-tint;
+        color: $erpico-horizon;
+        outline: none;
+    }
+}
+
+.o_navbar_breadcrumbs {
+    color: $erpico-muted;
+    font-size: 13px;
+    font-family: 'Work Sans', sans-serif;
+
+    .o_breadcrumb {
+        display: inline;
+        gap: 4px;
+
+        a {
+            color: $erpico-muted;
+            text-decoration: none;
+
+            &:hover {
+                color: $erpico-horizon-strong;
+            }
+        }
+
+        span.separator {
+            margin: 0 4px;
+            color: $erpico-line;
+        }
     }
 }
 

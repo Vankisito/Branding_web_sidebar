@@ -12,7 +12,8 @@
       S-021 (gap 769-991px sin acceso a apps), S-022 (drawer móvil excluye otherApps)
     * QA: riesgos medios/bajos documentados en spec §9.1 (R-M1..R-M3, R-L1..R-L6)
     * Fix: flyout se cierra con mouse dentro — cancelación de timer en flyout enter (BUG-S-019)
-    * Docs: apuntes cliente anotados — BUG-S-019 (flyout cierra rápido, reporte usuario; fix pendiente),
+    * Fix: topbar restaura contexto del módulo — brand, breadcrumbs, SectionsMenu (BUG-S-023 / D-28)
+    * Docs: apuntes cliente anotados — BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
       BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
 
 .. changelog:: 19.0.1.0.1

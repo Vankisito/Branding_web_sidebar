@@ -1,6 +1,6 @@
 # Spec — erpico_web_sidebar v1 — Navegación tipo Tiendanube para Odoo 19
 
-**Estado:** Implementado y validado Fases 0–6 ✅ (D-20/runtime confirmado; S-012…S-019 resueltos; matriz manual + regresión debranding ejecutadas; no-admin landing validado; R2 sin acumulación; C9 fullscreen resuelto; flyout hover fix BUG-S-019 aplicado). Listo para entrega.
+**Estado:** Implementado y validado Fases 0–6 ✅ (D-20/runtime confirmado; S-012…S-023 resueltos; matriz manual + regresión debranding ejecutadas; no-admin landing validado; R2 sin acumulación; C9 fullscreen resuelto; flyout hover fix BUG-S-019 aplicado; topbar contexto módulo D-28 implementado). Listo para entrega.
 **Fecha:** 2026-09-22
 **Versión objetivo:** 19.0.1.0.0
 **Licencia:** LGPL-3.0 or later (OCA)
@@ -171,7 +171,7 @@ Systray queda **igual** (`o_menu_systray` ms-auto). Con esto la topbar = brand +
 
 ### 5.2a Topbar v2 — restaurar contexto del módulo (D-28)
 
-**Estado objetivo (feedback cliente 2026-09-23):** la topbar anterior era demasiado
+**Estado: implementado** (BUG-S-023 resuelto). Feedback cliente 2026-09-23: la topbar anterior era demasiado
 mínima (logo ERPICO + systray) y perdía la orientación dentro del módulo. Nueva
 topbar **conserva el contexto del módulo como Odoo stock**:
 
@@ -321,7 +321,7 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 - **M3**: patch `_loadDefaultApp` admin → Dashboards → ✅ `landing_patch.js` (D-24) — login → `/odoo/dashboards?dashboard_id=3`.
 - **M4**: drawer mobile + footer Ajustes/SwitchCompanyMenu + ajustes CSS de contenido/fullscreen → ✅ drawer funcional, S-012/S-013 resueltos, SwitchCompany renderiza.
 - **M5**: CDP Edge headless (smoke + drawer + settings), matriz manual, regresión debranding; docs (Bugs.md, Changelog, TESTS_COVERAGE actualizados); C9 fullscreen resuelto (S-018/BUG-S-011a) → ✅ Completo.
-- **M6**: Fix BUG-S-019 (flyout hover), actualización docs spec → ✅ Completo. Listo para entrega.
+- **M6**: Fix BUG-S-019 (flyout hover) y fix BUG-S-023 (topbar contexto módulo D-28), actualización docs spec → ✅ Completo. Listo para entrega.
 
 ## 9. Riesgos / puntos abiertos
 
