@@ -1,5 +1,13 @@
 .. changelog:: 19.0.1.0.2
 
+    * Fix (crítico): crash WebClient en blanco — bilaender SectionsMenu sin t-set sections (BUG-S-024)
+    * Fix: doble margen .o_content desfasaba contenido 60px (BUG-S-025)
+    * Fix: highlight app activa dinámico tras navegación (BUG-S-026)
+    * Fix: fullscreenHidden stale al navegar target="new" desde fullscreen (BUG-S-027)
+    * Fix: flyout pegajoso tras apertura por teclado — modelo _pointerInFlyout (BUG-S-028)
+    * Chore: auditoría runtime contra core Odoo 19 (SectionsMenu, breadcrumbs portal, getMenuAsTree, UI-UPDATED details)
+    * Chore: navbar.js con header @odoo-module; CDP headless 'new' → true
+
     * Fix: drawer cierra al navegar desde app/submenú (BUG-S-013)
     * Fix: hover rail sin race — cancela timer en hoverApp (BUG-S-014)
     * Fix: toggleDrawer() muerto eliminado (BUG-S-015)

@@ -449,13 +449,17 @@ $erpico-allapps-w: 360px;
     }
 }
 
-/* Compensación del contenido: el layout clásico ocupaba el ancho completo */
-/* Verificar selector exacto contra build Odoo 19 (.o_main / .o_action_manager / .o_content) */
+/* Compensación del contenido: en Odoo 19 no existe .o_main; el .o_action_manager
+   (flex child de .o_web_client) engloba control_panel + o_content, por lo que un
+   único margen ahí alinea todo sin doble desplazamiento (verificado contra core 19). */
 @media (min-width: 992px) {
-    .o_main,
-    .o_action_manager,
-    .o_content {
+    .o_action_manager {
         margin-left: $erpico-rail-w;
+    }
+
+    /* Fullscreen (rail oculto vía clase) → sin margen muerto a la izquierda */
+    .o_web_client:has(.o_erpico_sidebar-fullscreen-hidden) .o_action_manager {
+        margin-left: 0;
     }
 }
 

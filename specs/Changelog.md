@@ -5,6 +5,65 @@
 
 ---
 
+## Sesión 2026-09-24 — Auditoría runtime core Odoo 19 + fixes S-024...S-028
+
+### Qué se hizo
+
+Levantado el stack Docker (`compose.test.yml`, puerto 8071) y verificados los hallazgos
+punto a punto contra el código fuente del core Odoo 19 dentro del container
+(`web/static/src/webclient/navbar/navbar.xml`, `menu_service.js`, `action_service.js`,
+`webclient.xml`, `webclient_layout.scss`).
+
+**Bugs confirmados y corregidos (ver bugs S-024...S-028 en Bugs.md):**
+- **S-024 (crítico):** `t-call="web.NavBar.SectionsMenu"` sin `t-set="sections"` →
+  `t-foreach="sections"` iteraba undefined → `OwlError: Invalid loop expression` →
+  NavBar no renderizaba → webclient en blanco (todo el backend). Confirmado en vivo:
+  `pageerror` exacto. Fix: pasar `t-set sections=currentAppSections` (patrón core).
+- **S-025:** doble margen en `.o_content` (contenido a 120px en vez de 60px, desfasado
+  60px vs el control panel). Verificado en vivo: `content.x=120`. Fix: margen solo en
+  `.o_action_manager`; `:has(.o_erpico_sidebar-fullscreen-hidden)` → 0 en fullscreen.
+- **S-026:** `activeAppId` solo en `onWillStart` → highlight rail no seguía la
+  navegación. Fix: recalcular en `ACTION_MANAGER:UI-UPDATED`.
+- **S-027:** `_onUIUpdated` saltaba `mode==="new"` → rail quedaba oculto tras navegar
+  desde fullscreen a una acción target="new". Fix: `fullscreenHidden = mode==="fullscreen"`
+  incondicional.
+- **S-028:** `_hoverLock` permanente tras apertura por teclado → flyout pegajoso. Fix:
+  modelo `_pointerInFlyout` (enter/leave del flyout); conserva S-014 y S-019.
+
+**Puntos del audit descartados como NO-bug (verificados contra core):**
+- Breadcrumbs: el div `o_navbar_breadcrumbs` vacío es idéntico al core; el contenido
+  llega por `t-portal` desde control_panel.
+- `item.childrenTree` en todos los niveles: `getMenuAsTree()` recursa completo.
+- Mutación `app.*` en onWillStart: mismo patrón de memoización del core.
+- `getMenu("root")` sí existe en Odoo 19; el refactor de landing_patch a `apps[0]` es equivalente.
+
+**Menores:** header `/** @odoo-module **/` en navbar.js (consistencia OCA); CDP
+`headless: 'new'` → `true` en los 9 scripts (puppeteer 25 lo depreca).
+
+### Archivos modificados
+- `static/src/sidebar/navbar.xml` — t-set sections en SectionsMenu (S-024)
+- `static/src/sidebar/sidebar.scss` — margen solo en .o_action_manager + :has fullscreen (S-025)
+- `static/src/sidebar/sidebar.js` — _onUIUpdated incondicional + activeAppId dinámico (S-026/S-027); _pointerInFlyout (S-028)
+- `static/src/sidebar/sidebar.xml` — handlers flyout enter/leave (S-028)
+- `static/src/sidebar/navbar.js` — header @odoo-module
+- `cdp/*.js` — headless true; añadidos `cdp_verify_audit.js` (regresión S-024/S-025), `cdp_verify_keyboard.js` (regresión S-028)
+- `specs/Bugs.md` — S-024...S-028 en Resueltos
+- `specs/spec-web-sidebar-v1.md` — §9.2 auditoría core
+- `readme/CHANGELOG.rst` — entradas 19.0.1.0.2
+
+### Verificación (CDP, stack docker, 1024/1600px)
+- `cdp_verify_audit.js`: navbar+sections+moduleBrand renderizan, 0 errores JS; layout actionManager/content/controlPanel x=60.
+- `cdp_smoke.js`: 0 errores consola, rail 12 botones.
+- `cdp_hover.js`: S-014/S-019 intactos (transición rápida + mouse dentro).
+- `cdp_verify_keyboard.js`: K3 teclado abre flyout, K4 mouseleave cierra (S-028), K5 Escape cierra.
+- `cdp_layout.js`: R2 sin acumulación (content left=60, margin=0).
+- `cdp_fullscreen.js`: C9 pasa (hide fullscreen + restore).
+
+### Estado al cierre
+- Bugs S-001...S-021, S-023, S-024...S-028 resueltos. S-017 (entorno debranding) y S-022 (otherApps drawer) pendientes.
+
+---
+
 ## Sesion 2026-09-23 — Code audit + fixes menores
 
 ### Que se hizo

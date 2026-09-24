@@ -21,7 +21,7 @@ async function main() {
     console.log('');
 
     const browser = await puppeteer.launch({
-        headless: 'new',
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1600,900']
     });
     const page = await browser.newPage();

@@ -1,3 +1,21 @@
+
+### 9.2 Auditoría runtime contra core Odoo 19 (2026-09-24, docker.odoo/19)
+
+Verificación en vivo contra /usr/lib/python3/dist-packages/odoo/addons/web de la
+imagen odoo:19 (container odoo_sidebar_test). Bugs encontrados y resueltos:
+**S-024** (crash SectionsMenu), **S-025** (doble margen), **S-026** (activeAppId
+estático), **S-027** (fullscreen stale en target="new"), **S-028** (flyout
+pegajoso por teclado). Detalle en Bugs.md.
+
+**Puntos del audit resueltos como NO-bug (verificados contra core):**
+- **Breadcrumbs (A1):** core web.NavBar usa <div class="o_navbar_breadcrumbs d-contents"/> vacío idéntico al nuestro; el contenido se inyecta por t-portal="'.o_navbar_breadcrumbs, .o_fallback_breadcrumbs'" desde control_panel.xml. Nuestro template mantiene el div → OK.
+- **item.childrenTree en templates (A6):** menuService.getMenuAsTree() recursa todo el árbol (menu.childrenTree = children.map(getMenuAsTree), menu_service.js:80-85) → childrenTree existe en todos los niveles. Flyout/drawer seguros.
+- **Mutación de app.* en onWillStart (A7):** core memoiza con el mismo patrón (getMenuAsTree muta menusData); asignar _icon/_childrenTree es seguro.
+- **getMenu("root") (A18):** SÍ existe en Odoo 19 (getApps() internamente usa getMenu("root").children). El refactor a apps[0] en landing_patch.js es **equivalente**, no corrigió ningún crash (sí reduce una llamada).
+
+**Notas de core confirmadas:**
+- El webclient monta MainComponentsContainer (donde viven los main_components, nuestro Sidebar) siempre que !state.fullscreen; en fullscreen el NavBar NO se monta.
+- ACTION_MANAGER:UI-UPDATED envía detail = _getActionMode(action) → "new" | "fullscreen" | "current" (nunca "main").
 # Spec — erpico_web_sidebar v1 — Navegación tipo Tiendanube para Odoo 19
 
 **Estado:** Implementado y validado Fases 0–6 ✅ (D-20/runtime confirmado; S-012…S-023 resueltos; matriz manual + regresión debranding ejecutadas; no-admin landing validado; R2 sin acumulación; C9 fullscreen resuelto; flyout hover fix BUG-S-019 aplicado; topbar contexto módulo D-28 implementado). Listo para entrega.

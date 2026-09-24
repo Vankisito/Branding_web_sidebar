@@ -44,7 +44,7 @@ export class Sidebar extends Component {
             drawerOpen: false,
             fullscreenHidden: false,
         });
-        this._hoverLock = false;
+        this._pointerInFlyout = false;
         this._onKeyDown = this._onKeyDown.bind(this);
         this._openDrawer = this._openDrawer.bind(this);
         this._onUIUpdated = this._onUIUpdated.bind(this);
@@ -99,9 +99,11 @@ export class Sidebar extends Component {
     _onUIUpdated(evt) {
         if (!this.state) return;
         const mode = evt && evt.detail;
-        if (mode !== "new") {
-            this.state.fullscreenHidden = mode === "fullscreen";
-        }
+        // detail: "new" | "fullscreen" | "current" (core action_service._getActionMode)
+        // Incondicional: evita estado stale al navegar con target="new" desde fullscreen (A4)
+        this.state.fullscreenHidden = mode === "fullscreen";
+        // Highlight de app activa dinámico tras cualquier navegación (A3)
+        this.state.activeAppId = this._currentAppId();
     }
 
     _onKeyDown(ev) {
@@ -110,10 +112,8 @@ export class Sidebar extends Component {
                 this._closeDrawer();
             } else if (this.state.allAppsOpen) {
                 this.state.allAppsOpen = false;
-                this._hoverLock = false;
             } else if (this.state.flyoutApp) {
-                this.state.flyoutApp = null;
-                this._hoverLock = false;
+                this._closeFlyout();
             }
         }
     }
@@ -126,7 +126,7 @@ export class Sidebar extends Component {
         this.state.drawerOpen = false;
         this.state.flyoutApp = null;
         this.state.allAppsOpen = false;
-        this._hoverLock = false;
+        this._pointerInFlyout = false;
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
     }
 
@@ -150,13 +150,11 @@ export class Sidebar extends Component {
     }
 
     selectApp(app) {
-        this._hoverLock = false;
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this._open(this._resolveLeaf(app));
     }
 
     openItem(menu) {
-        this._hoverLock = false;
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this._open(this._resolveLeaf(menu));
     }
@@ -192,23 +190,33 @@ export class Sidebar extends Component {
         this.state.flyoutApp = app;
     }
 
+    _onFlyoutEnter() {
+        this._pointerInFlyout = true;
+        this._cancelHoverTimer();
+    }
+
+    _onFlyoutLeave() {
+        this._pointerInFlyout = false;
+        this.clearHover();
+    }
+
     clearHover() {
         this._clearHoverTimer = setTimeout(() => {
-            if (!this._hoverLock) {
+            if (!this._pointerInFlyout) {
                 this.state.flyoutApp = null;
             }
         }, 180);
     }
 
     _openFlyout(app) {
-        this._hoverLock = true;
-        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
+        this._cancelHoverTimer();
         this.state.flyoutApp = app;
     }
 
     _closeFlyout() {
-        this._hoverLock = false;
-        this.clearHover();
+        this._pointerInFlyout = false;
+        this._cancelHoverTimer();
+        this.state.flyoutApp = null;
     }
 
     _onRailKeydown(app, ev) {
@@ -222,7 +230,6 @@ export class Sidebar extends Component {
     }
 
     toggleAllApps() {
-        this._hoverLock = false;
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this.state.allAppsOpen = !this.state.allAppsOpen;
     }
