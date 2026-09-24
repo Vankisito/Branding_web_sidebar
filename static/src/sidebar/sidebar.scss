@@ -88,6 +88,17 @@ $erpico-allapps-w: 360px;
         }
     }
 
+    .o-dropdown .dropdown-toggle,
+    .dropdown-toggle {
+        color: $erpico-chalk !important;
+        background: transparent !important;
+        border-color: rgba(255, 255, 255, 0.2);
+        &:hover {
+            color: $erpico-chalk !important;
+            background: $erpico-rail-hover !important;
+        }
+    }
+
     // Mobile / tablet: solo toggle (sin rotulador de espacio)
     @media (max-width: 991px) {
         .o_erpico_mobile_toggle {
