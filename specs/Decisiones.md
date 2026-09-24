@@ -251,6 +251,8 @@
 - `sidebar.scss`: `.o_main_navbar` con `background: $erpico-obsidian` + reset de colores para `.o_menu_systray`, `.o_navbar_breadcrumbs`, `.dropdown-menu`, `.dropdown-item`.
 - Eliminadas reglas CSS muertas (`.o_erpico_brand`, `.o_erpico_workspace_divider`, `.o_erpico_workspace_label`, `.o_erpico_heading`).
 - **Riesgo mitigado**: `.o_menu_systray` input/button/a y `.dropdown-item` forzados a `$erpico-chalk` para legibilidad sobre obsidian.
+- `.o-dropdown .dropdown-toggle` del core: color morado eliminado con `!important` (transparent bg + chalk text).
+- `.o_menu_sections .o_nav_entry` del core (links de sección en navbar): fondo `$o-navbar-background` = morado `$o-brand-odoo` → forzado a `$erpico-obsidian`.
 - `__manifest__.py`: bump a `19.0.1.0.3`.
 - `.o_erpico_module_brand` color cambiado de `$erpico-horizon-strong` (visual morbado) a `$erpico-chalk` (blanco) para consistencia con brandbook.
 

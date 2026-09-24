@@ -4,6 +4,7 @@
     * Fix: fondo topbar = $erpico-obsidian (#0c112e) para cohesión con brandbook
     * Fix: reset de colores en systray/breadcrumbs/dropdowns para legibilidad sobre fondo obsidian
     * Fix: dropdown-toggle morado del core eliminado (transparent bg + chalk text)
+    * Fix: .o_menu_sections .o_nav_entry fondo morado del core -> $erpico-obsidian (links de sección en navbar)
     * Fix: font-family unificado 'Outfit', 'Work Sans' en breadcrumbs y navbar; eliminada regla .o_erpico_heading muerta
     * Fix: .o_erpico_module_brand color cambiado de $erpico-horizon-strong (morbado) a $erpico-chalk (blanco) para consistencia brandbook
     * Chore: eliminadas reglas CSS muertas (.o_erpico_brand, .o_erpico_workspace_divider, .o_erpico_workspace_label)

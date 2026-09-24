@@ -99,6 +99,14 @@ $erpico-allapps-w: 360px;
         }
     }
 
+    .o_menu_sections .o_nav_entry {
+        background: $erpico-obsidian;
+        color: $erpico-chalk;
+        &:hover {
+            background: $erpico-rail-hover;
+        }
+    }
+
     // Mobile / tablet: solo toggle (sin rotulador de espacio)
     @media (max-width: 991px) {
         .o_erpico_mobile_toggle {
