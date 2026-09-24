@@ -5,6 +5,26 @@
 
 ---
 
+## Sesión 2026-09-23 — Fix BUG-S-019 (flyout hover)
+
+### Qué se hizo
+
+**BUG-S-019:** el flyout se cerraba al mover el mouse desde el rail button hacia el flyout. El `t-on-mouseleave` del rail button iniciaba un timer de 180ms (`clearHover()`), pero el flyout no tenía `t-on-mouseenter` para cancelarlo → tras 180ms el flyout desaparecía, imposibilitando clickear submenús con mouse.
+
+**Fix:**
+- `sidebar.js`: nuevo método `_cancelHoverTimer()` que limpia `_clearHoverTimer` sin tocar `_hoverLock` ni `flyoutApp`.
+- `sidebar.xml`: `t-on-mouseenter="() => this._cancelHoverTimer()"` agregado al div `.o_erpico_flyout` (línea 72).
+
+### Archivos modificados
+- `static/src/sidebar/sidebar.js` — `_cancelHoverTimer()`
+- `static/src/sidebar/sidebar.xml` — `t-on-mouseenter` en flyout
+- `specs/Bugs.md` — BUG-S-019 → Resuelto
+
+### Estado al cierre
+- Bugs S-001…S-019 resueltos.
+
+---
+
 ## Sesión 2026-09-23 — Bug-hunt Fase 6: detección de bugs y riesgos (sin fix)
 
 ### Qué se hizo

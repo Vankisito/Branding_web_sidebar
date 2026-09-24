@@ -69,6 +69,7 @@
             <div
                 t-if="state.flyoutApp and !state.allAppsOpen"
                 class="o_erpico_flyout"
+                t-on-mouseenter="() => this._cancelHoverTimer()"
                 t-on-mouseleave="() => this.clearHover()"
             >
                 <div class="o_erpico_flyout_header">

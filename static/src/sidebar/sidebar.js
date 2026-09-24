@@ -184,6 +184,13 @@ export class Sidebar extends Component {
         this.state.drawerOpen = false;
     }
 
+    _cancelHoverTimer() {
+        if (this._clearHoverTimer) {
+            clearTimeout(this._clearHoverTimer);
+            this._clearHoverTimer = null;
+        }
+    }
+
     hoverApp(app) {
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
         this.state.flyoutApp = app;

@@ -1,6 +1,6 @@
 # Spec — erpico_web_sidebar v1 — Navegación tipo Tiendanube para Odoo 19
 
-**Estado:** Implementado y validado Fases 0–5 ✅ (D-20/runtime confirmado; S-012…S-016 resueltos; matriz manual + regresión debranding ejecutadas; no-admin landing validado; R2 sin acumulación). Pendiente: C9 fullscreen report + soporte/entrega (Fase 6 cierre).
+**Estado:** Implementado y validado Fases 0–6 ✅ (D-20/runtime confirmado; S-012…S-019 resueltos; matriz manual + regresión debranding ejecutadas; no-admin landing validado; R2 sin acumulación; C9 fullscreen resuelto; flyout hover fix BUG-S-019 aplicado). Listo para entrega.
 **Fecha:** 2026-09-22
 **Versión objetivo:** 19.0.1.0.0
 **Licencia:** LGPL-3.0 or later (OCA)
@@ -320,7 +320,8 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 - **M2**: Sidebar en `main_components` → rail + flyout + filtrado mapeo + selectMenu + "Todas las aplicaciones" → ✅ restaurado (S-001) + validado (rail 12 botones).
 - **M3**: patch `_loadDefaultApp` admin → Dashboards → ✅ `landing_patch.js` (D-24) — login → `/odoo/dashboards?dashboard_id=3`.
 - **M4**: drawer mobile + footer Ajustes/SwitchCompanyMenu + ajustes CSS de contenido/fullscreen → ✅ drawer funcional, S-012/S-013 resueltos, SwitchCompany renderiza.
-- **M5**: CDP Edge headless (smoke + drawer + settings), matriz manual, regresión debranding; docs (Bugs.md, Changelog, TESTS_COVERAGE actualizados) → ✅ Fase 5 completa: C1-C8 + C11/C12, matriz CDP, regresión documentada (BUG-S-017 no bloquea). Pendiente: C9 fullscreen.
+- **M5**: CDP Edge headless (smoke + drawer + settings), matriz manual, regresión debranding; docs (Bugs.md, Changelog, TESTS_COVERAGE actualizados); C9 fullscreen resuelto (S-018/BUG-S-011a) → ✅ Completo.
+- **M6**: Fix BUG-S-019 (flyout hover), actualización docs spec → ✅ Completo. Listo para entrega.
 
 ## 9. Riesgos / puntos abiertos
 
@@ -336,7 +337,7 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 **Riesgos medios:**
 
 - **R-M1 — Breakpoints sin navegación (BUG-S-021):** sidebar visible solo ≥992px, toggle drawer solo ≤768px → **769-991px sin acceso a apps**. Impacta tablets portrait y ventanas Android/Windows medianas. Reproducido (viewports 800/991px: sidebar `none` + toggle `none`). Fix requerido (p.ej. unificar breakpoint del drawer a `<992px`).
-- **R-M2 — Flyout se cierra con el ratón dentro (BUG-S-019):** el `mouseleave` del botón rail arranca timer 180ms no cancelado por `mouseenter` del flyout → submenús no clicables con mouse (teclado sí). UX rota en desktop.
+- **R-M2 — Flyout se cierra con el ratón dentro (BUG-S-019):** ~~el `mouseleave` del botón rail arranca timer 180ms no cancelado por `mouseenter` del flyout → submenús no clicables con mouse (teclado sí).~~ **Resuelto** con `_cancelHoverTimer()` + `t-on-mouseenter` en flyout div.
 - **R-M3 — Falso negativo de tests CDP (BUG-S-020):** `cdp_layout.js`/`cdp_smoke.js` usan viewport default 800×600 → `cdp_layout.js` reporta sidebar oculto cuando es breakpoint, no bug. `cdp_smoke.js` no valida visibilidad real (cuenta DOM). Resultados green no prueban visibilidad a <992px.
 
 **Riesgos bajos:**
