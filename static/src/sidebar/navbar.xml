@@ -30,6 +30,7 @@
                 <t t-if="currentApp">
                     <button
                         class="o_erpico_module_brand"
+                        t-att-class="{ 'o_active': currentApp }"
                         t-att-title="currentApp.name"
                         t-on-click="() => this.onNavBarDropdownItemSelection(currentApp)"
                     >

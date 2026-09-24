@@ -13,7 +13,9 @@
     * QA: riesgos medios/bajos documentados en spec §9.1 (R-M1..R-M3, R-L1..R-L6)
     * Fix: flyout se cierra con mouse dentro — cancelación de timer en flyout enter (BUG-S-019)
     * Fix: topbar restaura contexto del módulo — brand, breadcrumbs, SectionsMenu (BUG-S-023 / D-28)
+    * Chore: code audit + fixes menores (_hoverLock init, remove dead _onAppChanged, t-call for SectionsMenu)
     * Fix: breakpoints unificados — toggle visible <992px en vez de <768px, eliminando gap 769-991px sin navegación (BUG-S-021)
+    * Fix: test infra CDP — viewport 1024×768 con setViewport en cdp_layout.js + cdp_smoke.js; rail visibilidad real con $$eval (BUG-S-020)
     * Docs: apuntes cliente anotados — BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
       BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
 

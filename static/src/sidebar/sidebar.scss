@@ -122,6 +122,12 @@ $erpico-allapps-w: 360px;
     cursor: pointer;
     border-radius: $erpico-radius;
 
+    &.o_active {
+        color: $erpico-horizon;
+        background: $erpico-horizon-tint;
+        font-weight: 700;
+    }
+
     &:hover,
     &:focus-visible {
         background: $erpico-horizon-tint;
@@ -135,19 +141,34 @@ $erpico-allapps-w: 360px;
     font-size: 13px;
     font-family: 'Work Sans', sans-serif;
 
-    .o_breadcrumb {
-        display: inline;
+    ol.breadcrumb {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
         gap: 4px;
+        align-items: center;
 
-        a {
-            color: $erpico-muted;
-            text-decoration: none;
+        li {
+            display: inline;
+            margin: 0;
+            padding: 0;
 
-            &:hover {
-                color: $erpico-horizon-strong;
+            a {
+                color: $erpico-muted;
+                text-decoration: none;
+
+                &:hover {
+                    color: $erpico-horizon-strong;
+                }
+            }
+
+            span:only-child {
+                color: $erpico-muted;
             }
         }
 
+        .breadcrumb-separator,
         span.separator {
             margin: 0 4px;
             color: $erpico-line;

@@ -17,6 +17,7 @@ async function main() {
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
+    await page.setViewport({ width: 1024, height: 768 });
     const errors = [];
 
     // Capture console errors
@@ -66,10 +67,12 @@ async function main() {
     const navbar = await page.$('.o_main_navbar');
     console.log(`  ${navbar ? '✅' : '❌'} .o_main_navbar ${navbar ? 'encontrado' : 'NO encontrado'}`);
 
-    // 4. Check rail visible
+    // 4. Check rail visible (verifica visibilidad real, no solo DOM)
     console.log('[C2] Rail visible con apps del APP_MAP');
-    const railBtns = await page.$$('.o_erpico_rail_btn');
-    console.log(`  ✅ Rail renderizado con ${railBtns.length} botones`);
+    const railBtns = await page.$$eval('.o_erpico_rail_btn', els =>
+        els.filter(el => el.offsetParent !== null)
+    );
+    console.log(`  ✅ Rail visible con ${railBtns.length} botones`);
 
     // 5. Landing admin = Dashboards
     console.log('[C5] Landing admin = Dashboards');

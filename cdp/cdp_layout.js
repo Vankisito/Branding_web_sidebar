@@ -12,9 +12,10 @@ async function main() {
 
     const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1024,768']
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
+    await page.setViewport({ width: 1024, height: 768 });
     const errors = [];
 
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });

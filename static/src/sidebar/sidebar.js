@@ -44,7 +44,7 @@ export class Sidebar extends Component {
             drawerOpen: false,
             fullscreenHidden: false,
         });
-        this._onAppChanged = this._onAppChanged.bind(this);
+        this._hoverLock = false;
         this._onKeyDown = this._onKeyDown.bind(this);
         this._openDrawer = this._openDrawer.bind(this);
         this._onUIUpdated = this._onUIUpdated.bind(this);
@@ -94,10 +94,6 @@ export class Sidebar extends Component {
     _currentAppId() {
         const app = this.menuService.getCurrentApp();
         return app ? app.id : null;
-    }
-
-    _onAppChanged() {
-        this.state.activeAppId = this._currentAppId();
     }
 
     _onUIUpdated(evt) {

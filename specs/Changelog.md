@@ -5,6 +5,49 @@
 
 ---
 
+## Sesion 2026-09-23 — Code audit + fixes menores
+
+### Que se hizo
+
+Revision completa del modulo tras bugs S-019 a S-023. Se encontraron y corrigieron
+problemas adicionales:
+
+**sidebar.js — code cleanup:**
+- `_hoverLock` nunca se inicializaba en `setup()`. Se agrego `this._hoverLock = false`
+  para evitar acceso a `undefined` en `clearHover()`.
+- `_onAppChanged()` era codigo muerto (el listener `MENUS:APP-CHANGED` fue removido
+  en BUG-S-016). Se elimino el metodo y su binding en `setup()`.
+
+**navbar.xml — SectionsMenu:**
+- Se cambio de `t-component="SectionsMenu"` a `t-call="web.NavBar.SectionsMenu"`
+  por compatibilidad con el componente parcheado.
+
+### Archivos modificados
+- `static/src/sidebar/sidebar.js` — `_hoverLock` init, eliminado `_onAppChanged`
+- `static/src/sidebar/navbar.xml` — `t-call` para SectionsMenu
+
+---
+
+## Sesión 2026-09-23 — Fix BUG-S-020 (test infra CDP)
+
+### Qué se hizo
+
+**BUG-S-020:** tests CDP con viewport default Puppeteer (800×600) → lectura falsa de layout.
+
+**Fix:**
+- `cdp_layout.js`: `await page.setViewport({ width: 1024, height: 768 })` tras `browser.newPage()`.
+- `cdp_smoke.js`: idem. `page.setViewport` garantiza viewport correcto de 1024×768.
+- `cdp_smoke.js` C2: `page.$$('.o_erpico_rail_btn')` → `page.$$eval('.o_erpico_rail_btn', els => els.filter(el => el.offsetParent !== null))`. Ahora solo cuenta botones **visibles**, no elementos DOM ocultos por CSS.
+
+### Archivos modificados
+- `cdp/cdp_layout.js` — setViewport
+- `cdp/cdp_smoke.js` — setViewport + visibilidad real
+
+### Estado al cierre
+- Bugs S-001…S-020 resueltos (S-022 pendiente).
+
+---
+
 ## Sesión 2026-09-23 — Fix BUG-S-021 (breakpoints)
 
 ### Qué se hizo
