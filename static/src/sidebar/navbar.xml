@@ -16,16 +16,6 @@
                     <i class="fa fa-bars" aria-hidden="true"/>
                 </button>
 
-                <a class="o_erpico_brand" href="/odoo" aria-label="Erpico, inicio">
-                    <img
-                        class="o_erpico_brand_logo"
-                        src="/erpico_web_sidebar/static/src/images/erpico-logo-horizontal.png"
-                        alt="Erpico"
-                    />
-                </a>
-                <span class="o_erpico_workspace_divider"/>
-                <span class="o_erpico_workspace_label">Mi espacio de trabajo</span>
-
                 <!-- Brand del módulo actual (D-28) -->
                 <t t-if="currentApp">
                     <button

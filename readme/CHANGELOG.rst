@@ -1,3 +1,11 @@
+.. changelog:: 19.0.1.0.3
+
+    * Fix: topbar logo eliminado (existe en sidebar/drawer), texto "Mi espacio de trabajo" eliminado
+    * Fix: fondo topbar = $erpico-obsidian (#0c112e) para cohesión con brandbook
+    * Fix: reset de colores en systray/breadcrumbs/dropdowns para legibilidad sobre fondo obsidian
+    * Fix: font-family unificado 'Outfit', 'Work Sans' en breadcrumbs y navbar; eliminada regla .o_erpico_heading muerta
+    * Chore: eliminadas reglas CSS muertas (.o_erpico_brand, .o_erpico_workspace_divider, .o_erpico_workspace_label)
+
 .. changelog:: 19.0.1.0.2
 
     * Fix (crítico): crash WebClient en blanco — bilaender SectionsMenu sin t-set sections (BUG-S-024)

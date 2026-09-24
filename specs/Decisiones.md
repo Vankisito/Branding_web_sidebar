@@ -235,7 +235,23 @@
 
 ---
 
-## D-28 — Topbar restaura contexto del módulo (2026-09-23)
+## D-28b — UI fix topbar: logo, workspace label, fondo obsidian (2026-09-24)
+
+**Fecha:** 2026-09-24
+**Decidido por:** usuario (Santi)
+
+**Decisión:** Tras feedback visual:
+1. Logo ERPICO en topbar demasiado pequeño y duplicado (sidebar/drawer ya lo tienen) → **eliminado**.
+2. Texto "Mi espacio de trabajo" innecesario y estéticamente deficiente → **eliminado**.
+3. Color de topbar no coincidía con brandbook → **fondo `$erpico-obsidian` (#0c112e)**, mismo que sidebar.
+4. Fuente de topbar no coincidía con sidebar → **unificada a `'Outfit', 'Work Sans'`**.
+
+**Consecuencias:**
+- `navbar.xml`: eliminados `<a.o_erpico_brand>`, `<span.o_erpico_workspace_divider>`, `<span.o_erpico_workspace_label>`.
+- `sidebar.scss`: `.o_main_navbar` con `background: $erpico-obsidian` + reset de colores para `.o_menu_systray`, `.o_navbar_breadcrumbs`, `.dropdown-menu`, `.dropdown-item`.
+- Eliminadas reglas CSS muertas (`.o_erpico_brand`, `.o_erpico_workspace_divider`, `.o_erpico_workspace_label`, `.o_erpico_heading`).
+- **Riesgo mitigado**: `.o_menu_systray` input/button/a y `.dropdown-item` forzados a `$erpico-chalk` para legibilidad sobre obsidian.
+- `__manifest__.py`: bump a `19.0.1.0.3`.
 
 **Fecha:** 2026-09-23
 **Decidido por:** cliente (jefe)

@@ -54,51 +54,45 @@ $erpico-allapps-w: 360px;
 .o_main_navbar {
     height: 56px;
     padding: 0 24px;
+    background: $erpico-obsidian;
+    color: $erpico-chalk;
 
     .o_erpico_mobile_toggle {
         display: none;
         padding: 0 10px;
         font-size: 18px;
-        color: $erpico-ink;
+        color: $erpico-chalk;
         background: transparent;
         border: 0;
     }
 
-    .o_erpico_brand {
-        display: flex;
-        align-items: center;
-        margin-right: 12px;
-
-        .o_erpico_brand_logo {
-            height: 28px;
-            width: auto;
+    .o_menu_systray {
+        color: $erpico-chalk;
+        input, button, a {
+            color: $erpico-chalk;
+        }
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
         }
     }
 
-    .o_erpico_workspace_divider {
-        width: 1px;
-        height: 24px;
-        background: $erpico-line;
-        margin: 0 14px;
+    .dropdown-menu {
+        background: $erpico-obsidian;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    .dropdown-item {
+        color: $erpico-chalk;
+        &:hover {
+            background: $erpico-rail-hover;
+        }
     }
 
-    .o_erpico_workspace_label {
-        color: $erpico-secondary;
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    // Mobile / tablet: solo brand + toggle (sin rotulador de espacio)
-    // Breakpoint unificado con sidebar (d-lg-flex oculta el sidebar <992px)
+    // Mobile / tablet: solo toggle (sin rotulador de espacio)
     @media (max-width: 991px) {
         .o_erpico_mobile_toggle {
             display: inline-flex;
             align-items: center;
-        }
-
-        .o_erpico_workspace_divider,
-        .o_erpico_workspace_label {
-            display: none;
         }
 
         .o_erpico_module_brand,
@@ -137,9 +131,9 @@ $erpico-allapps-w: 360px;
 }
 
 .o_navbar_breadcrumbs {
-    color: $erpico-muted;
+    color: $erpico-chalk;
     font-size: 13px;
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Outfit', 'Work Sans', sans-serif;
 
     ol.breadcrumb {
         margin: 0;
@@ -174,12 +168,6 @@ $erpico-allapps-w: 360px;
             color: $erpico-line;
         }
     }
-}
-
-// Fallback tipográfico de marca una vez montado el sidebar
-.o_erpico_heading,
-.o_main_navbar {
-    font-family: 'Outfit', 'Work Sans', sans-serif;
 }
 
 /* Fullscreen: ocultar sidebar */
