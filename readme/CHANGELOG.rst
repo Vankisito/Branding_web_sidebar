@@ -17,7 +17,6 @@
     * Fix: breakpoints unificados — toggle visible <992px en vez de <768px, eliminando gap 769-991px sin navegación (BUG-S-021)
     * Fix: test infra CDP — viewport 1024×768 con setViewport en cdp_layout.js + cdp_smoke.js; rail visibilidad real con $$eval (BUG-S-020)
     * Docs: apuntes cliente anotados — BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
-      BUG-S-023 (restaurar menú del módulo en topbar; D-28), spec §5.2a, Decisiones D-28
 
 .. changelog:: 19.0.1.0.1
 

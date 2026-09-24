@@ -14,13 +14,12 @@ const DASHBOARD_XMLID =
 patch(WebClient.prototype, {
     async _loadDefaultApp() {
         const menuService = this.env.services.menu;
-        const app = menuService
-            .getApps()
-            .find((a) => a.xmlid === DASHBOARD_XMLID);
-        const root = menuService.getMenu("root");
-        const firstApp = root.children[0];
-        if (app && firstApp !== app.id) {
-            return menuService.selectMenu(app);
+        const apps = menuService.getApps();
+        const dashboardApp = apps.find(
+            (a) => a.xmlid === DASHBOARD_XMLID
+        );
+        if (dashboardApp && apps[0].id !== dashboardApp.id) {
+            return menuService.selectMenu(dashboardApp);
         }
         return super._loadDefaultApp(...arguments);
     },
