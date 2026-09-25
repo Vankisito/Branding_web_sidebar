@@ -201,7 +201,7 @@ $erpico-allapps-w: 360px;
     top: $erpico-topbar-h; // debajo de la topbar
     left: 0;
     bottom: 0;
-    z-index: $zindex-dropdown - 10; // por debajo de dropdowns, por encima del contenido
+    z-index: $zindex-fixed; // por encima de dropdowns y botones del action manager
 }
 
 .o_erpico_rail {

@@ -1,5 +1,10 @@
 .. changelog:: 19.0.1.0.3
 
+    * Fix: sidebar colapsa debajo de botones del módulo tras acción fullscreen (BUG-S-034)
+      — `_onUIUpdated` usa `webclient.state.fullscreen` como fuente de verdad en vez de
+        `evt.detail` de `ACTION_MANAGER:UI-UPDATED`; `_syncFullscreen()` con `requestAnimationFrame`
+        loop sincroniza continuamente; `z-index` elevado a `$zindex-fixed` para estar por encima
+        de botones/dropdowns del action manager
     * Fix: topbar logo eliminado (existe en sidebar/drawer), texto "Mi espacio de trabajo" eliminado
     * Fix: fondo topbar = $erpico-obsidian (#0c112e) para cohesión con brandbook
     * Fix: reset de colores en systray/breadcrumbs/dropdowns para legibilidad sobre fondo obsidian

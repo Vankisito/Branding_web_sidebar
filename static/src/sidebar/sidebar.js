@@ -34,6 +34,11 @@ export class Sidebar extends Component {
     setup() {
         this.menuService = useService("menu");
         this.ui = useService("ui");
+        try {
+            this.webclient = useService("webclient");
+        } catch {
+            this.webclient = null;
+        }
         this.state = useState({
             ready: false,
             railApps: [],
@@ -48,6 +53,7 @@ export class Sidebar extends Component {
         this._onKeyDown = this._onKeyDown.bind(this);
         this._openDrawer = this._openDrawer.bind(this);
         this._onUIUpdated = this._onUIUpdated.bind(this);
+        this._rafId = null;
 
         onWillStart(async () => {
             const apps = this.menuService.getApps();
@@ -82,12 +88,14 @@ export class Sidebar extends Component {
         this._clearHoverTimer = null;
         onMounted(() => {
             window.addEventListener("keydown", this._onKeyDown, true);
+            this._syncFullscreen();
         });
         onWillUnmount(() => {
             this.env.bus.removeEventListener("erpico:open-drawer", this._openDrawer);
             this.env.bus.removeEventListener("ACTION_MANAGER:UI-UPDATED", this._onUIUpdated);
             window.removeEventListener("keydown", this._onKeyDown, true);
             if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
+            if (this._rafId) cancelAnimationFrame(this._rafId);
         });
     }
 
@@ -96,12 +104,29 @@ export class Sidebar extends Component {
         return app ? app.id : null;
     }
 
+    _syncFullscreen() {
+        if (!this.webclient) return;
+        if (this.webclient?.state?.fullscreen !== undefined) {
+            const isFullscreen = !!this.webclient.state.fullscreen;
+            if (this.state.fullscreenHidden !== isFullscreen) {
+                this.state.fullscreenHidden = isFullscreen;
+            }
+        }
+        this._rafId = requestAnimationFrame(() => this._syncFullscreen());
+    }
+
     _onUIUpdated(evt) {
         if (!this.state) return;
-        const mode = evt && evt.detail;
-        // detail: "new" | "fullscreen" | "current" (core action_service._getActionMode)
-        // Incondicional: evita estado stale al navegar con target="new" desde fullscreen (A4)
-        this.state.fullscreenHidden = mode === "fullscreen";
+        // Fuente de verdad: webclient.state.fullscreen sincroniza con el
+        // WebClient core, evitando que el estado stale con target="new"
+        // o al cerrar una acción fullscreen desde el mismo módulo.
+        // Fallback: usar el evento ACTION_MANAGER:UI-UPDATED si webclient no existe.
+        if (this.webclient?.state?.fullscreen !== undefined) {
+            this.state.fullscreenHidden = !!this.webclient.state.fullscreen;
+        } else {
+            const mode = evt && evt.detail;
+            this.state.fullscreenHidden = mode === "fullscreen";
+        }
         // Highlight de app activa dinámico tras cualquier navegación (A3)
         this.state.activeAppId = this._currentAppId();
     }
