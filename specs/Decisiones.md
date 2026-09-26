@@ -271,3 +271,112 @@
 **Por qué:** mejor orientación dentro del módulo; el rail ya cumple la función de selector de apps. Únicamente template (`navbar.xml`) — el componente `NavBar` expone `currentApp`/`currentAppSections`/`onNavBarDropdownItemSelection` sin cambios JS.
 
 **Consecuencias:** revierte parcialmente D-14 (topbar mínima). Ver BUG-S-023 (mejora abierta).
+
+---
+
+## D-29 — Orden del rail = 10 entradas del cliente, ícono #1 = Inicio
+
+**Fecha:** 2026-09-26
+**Decidido por:** cliente (jefe), confirmado por usuario (Santi)
+
+**Contexto:** el cliente define el orden exacto del rail y pide además una homepage para todos los usuarios. La implementación v1 (D-19/D-20) tenía 13 apps ancladas a `menuService.getApps()`.
+
+**Decisión:** el rail pasa de **apps** a **entradas** (`NAV_MAP` en `static/src/sidebar/nav_entries.js`). Orden pedido:
+
+| # | Entrada | xmlids candidatos (gana el 1º presente) |
+|---|---|---|
+| 1 | Inicio | `erpico_web_sidebar.menu_home_root` |
+| 2 | CRM | `crm.crm_menu_root` |
+| 3 | Ventas | `sale.sale_menu_root` → `sale.menu_sale_order` → `sale.menu_sale_quotations` |
+| 4 | Ecommerce | `website_sale.menu_ecommerce` |
+| 5 | POS | `point_of_sale.menu_point_root` |
+| 6 | Inventario | `stock.menu_stock_root` |
+| 7 | Productos | `stock.menu_product_variant_config_stock` → `stock.menu_stock_inventory_control` |
+| 8 | Compras | `purchase.menu_purchase_root` |
+| 9 | Website | `website.menu_website_configuration` |
+| 10 | Marketing - Email/SMS | `mass_mailing.mass_mailing_menu_root` + `mass_mailing_sms.mass_mailing_sms_menu_root` |
+
+**Por qué entradas y no apps (verificado contra `odoo/odoo` 19.0):**
+- `sale.sale_menu_root` se define con `active="False"` en `addons/sale/views/sale_menus.xml` (única definición; `_post_init_hook` de `sale` sólo sincroniza crons y anticipos) → **no llega a `getApps()`**. Por eso hay cadena de candidatos.
+- `product` **no define ningún `<menuitem>`** en v19 (verificado archivo por archivo en `addons/product/views/`): Productos cuelga de Inventario (`stock.menu_stock_inventory_control`, hijos en `addons/stock/views/product_views.xml`).
+- `website_sale.menu_ecommerce` es hijo de `website.menu_website_configuration` → dos entradas sobre la misma app, subárboles distintos.
+- Email y SMS Marketing son **dos apps** distintas en v19 (no existe `sms_marketing` en community).
+
+**Consecuencias:** `state.railApps`/`APP_MAP` → `state.entries`; `activeAppId` pasa a `isEntryActive(entry)` comparando `entry.appIds` con `menuService.getCurrentApp().id`; `goToSettings()` y el panel all-apps usan el índice por xmlid.
+
+---
+
+## D-30 — Sidebar responsivo a permisos: presencia en `menuService.getAll()`
+
+**Fecha:** 2026-09-26
+
+**Decisión:** no se usa `user.hasGroup()`. `/web/webclient/load_menus` ya devuelve **sólo** los menús que el usuario puede ver (`active_test` + grupos), así que la presencia de un xmlid en `menuService.getAll()` **es** el permiso. Como `getMenu(id)` sólo acepta id numérico (no hay lookup por xmlid en `webclient/menus/menu_service.js`), se indexa `getAll()` una vez en `onWillStart`.
+
+**Consecuencias:**
+- Una entrada sin ningún xmlid resoluble **no se renderiza** en rail, drawer, flyout, panel all-apps ni home.
+- Drawer móvil: ahora itera las mismas entradas que el rail (antes la lista de apps del rail v1, que dejaba fuera Marketing) → **parcialmente mitiga BUG-S-022**. Sigue abierto el hecho de que el panel "Todas las aplicaciones" cuelga del `<nav>` del rail (`d-none d-lg-flex`) y por tanto no es alcanzable en móvil: las apps fuera del rail (Contactos, Facturación, Discuss, Calendario) no tienen acceso en pantallas pequeñas.
+- Un cambio de permisos/grupos requiere recarga de página (o `menuService.reload()`); no hay suscripción en vivo en v1.
+
+---
+
+## D-31 — Contactos, Facturación, Discuss, Calendario y Ajustes salen del rail
+
+**Fecha:** 2026-09-26
+
+**Decisión:** el rail queda con exactamente las 10 entradas de D-29. El resto de apps del usuario se accede desde el panel "Todas las aplicaciones" (botón grid del footer del rail). **Ajustes** se mantiene en el footer del drawer móvil y en `goToSettings()` (además del acceso estándar de la topbar). Cierra el riesgo R-L2 de la spec v1.
+
+---
+
+## D-32 — Marketing Email/SMS = un ícono, flyout con dos grupos
+
+**Fecha:** 2026-09-26
+
+**Decisión:** una sola entrada con dos secciones (`Email Marketing`, `SMS Marketing`). Cada sección se renderiza sólo si su xmlid resolvió, de modo que un usuario sin `mass_mailing_sms` ve el flyout con un único grupo. El drawer móvil replica los grupos con la clase `.o_erpico_drawer_group`.
+
+---
+
+## D-33 — Home de ERPICO = client action propia (landing natural)
+
+**Fecha:** 2026-09-26
+
+**Decisión:** el home es un `ir.actions.client` con `tag="erpico_web_sidebar_home"` registrado en `registry.category("actions")` (en v19 `_executeClientAction` monta el `Component` si `clientAction.prototype instanceof Component`). El menú `menu_home_root` es **root con `sequence=1`**, sin `groups`: así `getApps()` lo devuelve como `apps[0]` y el WebClient aterriza ahí **sin patch**. `landing_patch.js` queda como red de seguridad (`home` → `spreadsheet_dashboard` → `super`).
+
+**Alcance v1 (pedido explícito del cliente):** sólo se implementan las **2 primeras** opciones como cards (`HOME_CARDS` = Dashboards + CRM). La lista es data: crecer es añadir un objeto.
+
+**Consecuencias:** sin modelos Python ni `ir.model.access.csv` (un client action no requiere ACL; el acceso lo controla el menú y el filtrado por presencia). Versión del módulo → `19.0.1.1.0`. Se elimina `views/webclient_templates.xml` (vacío y fuera de `data` desde la implementación del topbar por patch).
+
+---
+
+## D-34 — `nav_entries.js` se declara explícito en `web.assets_unit_tests`
+
+**Fecha:** 2026-09-26
+
+**Decisión:** el bundle de tests de Hoot (`web.assets_unit_tests`) sólo lleva `web/static/tests/**` más lo que declare cada módulo; **no** arrastra `web.assets_backend`. Por eso el módulo bajo test (`nav_entries.js`) faltaba y el loader reportaba
+`modules needed by other modules but have not been defined: [@erpico_web_sidebar/static/src/sidebar/nav_entries]`.
+Se declara explícitamente antes del glob de tests, junto al patrón del core.
+
+**Alcance:** es un fix real de manifest, pero **no** habilita por sí solo los tests Hoot en este
+entorno: el runner de `/web/tests` no los ejecuta con Puppeteer (`odoo.loader.modules` = 64, sin
+factories de Hoot; el wrapper `hoot_module_loader.js` renombra los módulos con `" (hoot)"` y las
+dependencias declaradas no se resuelven). Cobertura efectiva de la lógica JS = asserts Node
+(`menuService` simulado) + suite CDP E2E contra la UI real. Se deja constancia en
+`TESTS_COVERAGE.md` en lugar de declarar verde algo no verificado.
+
+---
+
+## D-35 — En QA, un login por contexto de browser aislado
+
+**Fecha:** 2026-09-26
+
+**Decisión:** los tests que cambian de usuario (matriz de permisos) abren un
+`browser.createBrowserContext()` por usuario en lugar de re-loguear en la misma pestaña. El
+logout de Odoo 19 es `POST /web/session/logout` (`/web/logout` devuelve 404) y, aunque se usara
+la ruta correcta, reutilizar la pestaña dejó el formulario de login sin JS funcional: el click no
+emite POST y la navegación cuelga.
+
+**Consecuencias:** `cdp_matrix.js` confirma la identidad por RPC
+(`/web/session/get_session_info` → `uid`) en lugar de fiarse de la URL, que puede mentir si la
+sesión anterior sobrevive. Sin esto la matriz daba **falsos verdes** (10 entradas para un
+usuario sin POS). Nota de entorno: los usuarios de prueba se crean con
+`_set_encrypted_password` + `env.cr.commit()` porque `odoo shell` hace rollback al salir y
+`password`/`new_password` no hashean nada.

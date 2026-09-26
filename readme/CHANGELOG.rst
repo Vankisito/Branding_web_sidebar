@@ -1,3 +1,30 @@
+.. changelog:: 19.0.1.1.0
+
+    * Feat: sidebar por entradas (NAV_MAP) con el orden pedido por el cliente
+      (Inicio, CRM, Ventas, Ecommerce, POS, Inventario, Productos, Compras,
+      Website, Marketing - Email/SMS); cada entrada declara xmlids candidatos y
+      se oculta si el usuario no tiene permiso
+    * Feat: home de ERPICO (client action `erpico_web_sidebar_home`) visible
+      para todos los usuarios al entrar, con 2 tarjetas de acceso rapido
+      (Dashboards, CRM) filtradas por permisos
+    * Feat: Ventas resuelve `sale.menu_sale_order`/`sale.menu_sale_quotations`
+      (el root de venta esta `active=False` en Odoo 19 y nunca llega a `getApps()`);
+      Productos resuelve los menus de stock (`product` no define menus)
+    * Feat: Marketing Email/SMS agrupado en un solo icono con dos secciones
+      independientes (cada una se oculta si la app no esta accesible)
+    * Feat: icono de marca `brand-productos`
+    * Feat: tests hoot de la resolucion de entradas (`static/tests/nav_entries.test.js`);
+      `nav_entries.js` se declara explicito en `web.assets_unit_tests` porque el bundle de
+      tests no arrastra los assets de backend
+    * Chore: Contactos, Facturacion, Discuss, Calendario y Ajustes fuera del rail
+      (solo panel "Todas las aplicaciones"); Ajustes sigue en el footer del drawer
+    * Chore: drawer movil replica las entradas del rail, mitigando BUG-S-022
+      (el panel "Todas las aplicaciones" sigue siendo de escritorio, `d-none d-lg-flex`)
+    * Chore: `spreadsheet_dashboard` fuera de `depends`; la tarjeta Dashboards del home y la
+      entrada del rail se filtran por presencia real del menu
+    * Chore: QA runtime v1.1 completa (C13-C18) con 10/10 scripts CDP en verde
+    * Chore: eliminado `views/webclient_templates.xml` (vacio y fuera de `data`)
+
 .. changelog:: 19.0.1.0.3
 
     * Fix: sidebar colapsa debajo de botones del módulo tras acción fullscreen (BUG-S-034)

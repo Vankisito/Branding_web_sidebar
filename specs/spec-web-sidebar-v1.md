@@ -121,12 +121,18 @@ erpico_web_sidebar/
 │   ├── spec-web-sidebar-v1.md          (este archivo)
 │   └── mockups/sidebar_topbar_mockup.html
 ├── views/
-│   └── webclient_templates.xml         (t-inherit web.NavBar + patches de marca)
-└── static/src/
-    ├── sidebar/                        (OWL, Odoo 19 => OWL 3.x, ES modules)
-    │   ├── sidebar.js                  (componente principal + subcomponentes)
+│   └── home.xml                          (menu root `menu_home_root` + ir.actions.client del home)
+└── static/
+    ├── src/sidebar/                      (OWL, Odoo 19 => OWL 3.x, ES modules)
+    │   ├── nav_entries.js                (D-29/D-30: NAV_MAP, HOME_CARDS, resolución por xmlid)
+    │   ├── sidebar.js                    (componente principal del rail)
     │   ├── sidebar.xml
-    │   └── sidebar.scss                (tokens marca + estilos rail/flyout/drawer)
+    │   ├── sidebar.scss                  (tokens marca + estilos rail/flyout/drawer)
+    │   ├── home.js|xml|scss              (D-33: client action `erpico_web_sidebar_home`)
+    │   ├── navbar.js|xml                 (patch de `web.NavBar`)
+    │   └── landing_patch.js              (fallback home → dashboards → core)
+    └── tests/
+        └── nav_entries.test.js           (hoot: resolución, fallback, permisos, flyout groups)
     ├── icons/
     │   ├── brand-*.svg                 (copia de public/icons/features/ del repo website)
     │   └── ui-sprite.svg               (symbols genéricos: grid, dashboard, settings, etc. extraídos del mockup)
@@ -141,27 +147,46 @@ erpico_web_sidebar/
 ```python
 {
     "name": "ERPICO Web Sidebar",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "license": "LGPL-3",
     "category": "Productivity",
-    "summary": "Tiendanube-style sidebar navigation + minimal topbar for Odoo 19",
+    "summary": "Tiendanube-style sidebar navigation, home and minimal topbar for Odoo 19",
     "depends": ["web"],
-    "data": ["views/webclient_templates.xml"],
+    "data": ["views/home.xml"],
     "assets": {
         "web.assets_backend": [
             "erpico_web_sidebar/static/src/sidebar/sidebar.scss",
+            "erpico_web_sidebar/static/src/sidebar/nav_entries.js",
+            "erpico_web_sidebar/static/src/sidebar/home.scss",
+            "erpico_web_sidebar/static/src/sidebar/navbar.js",
+            "erpico_web_sidebar/static/src/sidebar/navbar.xml",
             "erpico_web_sidebar/static/src/sidebar/sidebar.js",
             "erpico_web_sidebar/static/src/sidebar/sidebar.xml",
-        ]
+            "erpico_web_sidebar/static/src/sidebar/home.js",
+            "erpico_web_sidebar/static/src/sidebar/home.xml",
+            "erpico_web_sidebar/static/src/sidebar/landing_patch.js",
+        ],
+        "web.assets_unit_tests": [
+            "erpico_web_sidebar/static/tests/**/*.test.js",
+        ],
     },
 }
 ```
-- `depends: ["web"]` únicamente. Detección de Dashboards **en runtime** (soft): el módulo funciona aunque `spreadsheet_dashboard` no esté instalado.
-- Orden canónico de claves OCA.
+- Orden canónico de claves OCA. Sin modelos Python ni `ir.model.access.csv` (todo es frontend +
+  un `ir.actions.client`); el acceso a cada app lo controla el menú, no un ACL.
+- `depends: ["web"]` únicamente: **todos los destinos son detections soft por xmlid**
+  (`spreadsheet_dashboard`, `crm`, `sale`, `website_sale`, `point_of_sale`, `stock`, `purchase`,
+  `website`, `mass_mailing`, `mass_mailing_sms`). El módulo instala y funciona aunque no haya
+  ninguno de esos módulos instalados; lo que no aparece es la entrada o la card. Si el cliente
+  quiere garantizar la card de Dashboards en todas las bases, la opción es añadir
+  `spreadsheet_dashboard` a `depends` (decisión a confirmar, no aplicada por defecto).
+- El bundle de tests usa **hoot** (`@odoo/hoot`), que es el runner de tests unitarios en Odoo 19
+  (`web.assets_unit_tests`), no QUnit.
 
 ### 5.2 Topbar (t-inherit de `web.NavBar`)
 
-En `views/webclient_templates.xml`:
+En `static/src/sidebar/navbar.xml` (patch JS de `web.NavBar`; en Odoo 19 la herencia de templates
+del core quedó obsoleta, por eso se hace con `patch()` en vez de un XML):
 
 ```xml
 <t t-inherit="web.NavBar" t-inherit-mode="extension">
@@ -233,67 +258,85 @@ Servicios: `menu`, `action`, `ui` (para `isSmall`). Suscripciones: `MENUS:APP-CH
 - Click en submenú → `menuService.selectMenu(item)` (D-13, misma API que el core).
 - Rail-footer: Ajustes → `selectMenu` del menú settings (`base.menu_administration`, verificar xmlid en runtime); Cambiar empresa → **reutilizar `SwitchCompanyMenu`** (`@web/webclient/switch_company_menu/switch_company_menu`, component exportado) renderizado en el footer del rail → dropdown real de empresas, sin duplicar lógica.
 
-### 5.4 Mapeo app → icono brand (D-20 confirmado runtime)
+### 5.4 Entradas del rail → xmlid + icono brand (D-29/D-30, 2026-09-26)
 
-`getApps()` devuelve root menus con `xmlid`. Mapa clave = xmlid del menú root (**confirmado** contra `menuService.getApps()` runtime 2026-09-23):
+**Cambio de modelo:** el rail ya **no** se construye sobre `getApps()`. Se construye sobre
+`NAV_MAP` (`static/src/sidebar/nav_entries.js`): entradas que apuntan a **menús** por xmlid, con
+candidatos alternativos. Motivo: varias de las apps pedidas **no son app roots** en Odoo 19
+(verificado contra `odoo/odoo` 19.0 y contra el core `webclient/menus/menu_service.js`).
 
-| # | App | xmlid | Icono |
+| # | Entrada | xmlids candidatos (1º presente) | Icono |
 |---|---|---|---|
-| 1 | Dashboards | `spreadsheet_dashboard.spreadsheet_dashboard_menu_root` | `i-dashboard` (sprite) |
-| 2 | Contactos | `contacts.menu_contacts` | `i-building` (sprite) |
-| 3 | CRM | `crm.crm_menu_root` | `brand-clientes-reportes` |
-| 4 | Punto de venta | `point_of_sale.menu_point_root` | `brand-punto-de-venta` |
-| 5 | Compras | `purchase.menu_purchase_root` | `brand-compras` |
-| 6 | Facturación | `account.menu_finance` | `brand-facturacion` |
-| 7 | Inventario | `stock.menu_stock_root` | `brand-inventario-ubicacion` |
-| 8 | Sitio web | `website.menu_website_configuration` | `i-globe` (sprite) |
-| 9 | **Discuss** | `mail.menu_root_discuss` | `i-bell` (sprite) |
-| 10 | **Calendario** | `calendar.mail_menu_calendar` | `i-calendar` (sprite) |
-| 11 | **Ajustes** | `base.menu_administration` | `i-settings` (sprite) |
+| 1 | Inicio (home) | `erpico_web_sidebar.menu_home_root` | `i-dashboard` (sprite) |
+| 2 | CRM | `crm.crm_menu_root` | `brand-clientes-reportes` |
+| 3 | Ventas | `sale.sale_menu_root` → `sale.menu_sale_order` → `sale.menu_sale_quotations` | `brand-pedidos-devoluciones` |
+| 4 | Ecommerce | `website_sale.menu_ecommerce` | `brand-ecommerce-integrado` |
+| 5 | POS | `point_of_sale.menu_point_root` | `brand-punto-de-venta` |
+| 6 | Inventario | `stock.menu_stock_root` | `brand-inventario-ubicacion` |
+| 7 | Productos | `stock.menu_product_variant_config_stock` → `stock.menu_stock_inventory_control` | `brand-productos` (nuevo) |
+| 8 | Compras | `purchase.menu_purchase_root` | `brand-compras` |
+| 9 | Website | `website.menu_website_configuration` | `i-globe` (sprite) |
+| 10 | Marketing - Email/SMS | `mass_mailing.mass_mailing_menu_root` + `mass_mailing_sms.mass_mailing_sms_menu_root` | `brand-email-marketing` |
 
-> **No son app root** (no entran al rail): `sale.sale_menu_root` (res 278, action None), `website_sale.menu_ecommerce` (submenú de Sitio web). Rail renderiza **12/13** de las apps mapeadas.
-> **Eliminado:** `base.menu_management` (Apps/Marketplace — no deseado, D-20).
+**Hallazgos de Odoo 19 que justificaron el cambio (auditados en `odoo/odoo` 19.0):**
+- `sale.sale_menu_root` se define con **`active="False"`** en `addons/sale/views/sale_menus.xml`
+  (única definición; el `post_init_hook` de `sale` no lo activa) → nunca llega a `getApps()`.
+- El módulo `product` **no define ningún `<menuitem>`**; la UI de productos cuelga de Inventario
+  (`stock.menu_stock_inventory_control`, hijos en `addons/stock/views/product_views.xml`).
+- `website_sale.menu_ecommerce` es submenú de `website.menu_website_configuration`.
+- Email Marketing (`mass_mailing`, seq 115) y SMS Marketing (`mass_mailing_sms`, seq 120) son apps
+  separadas; en community no existe `sms_marketing`.
+- `menuService.getMenu(id)` **sólo acepta id numérico**: para filtrar por xmlid hay que indexar
+  `menuService.getAll()`.
 
-**Lógica de filtrado (D-12):** se renderizan solo apps del mapa cuyo xmlid exista entre `getApps()`. Apps no mapeadas (proyectos, marketing…) **no** aparecen en el rail (accesibles vía "Todas las aplicaciones").
-**Fallback de icono:** si una app del mapa tiene xmlid distinto al confirmado → intentar match por nombre (`getCurrentApp().name` traducción) o usar `webIconData` de la app.
+**Lógica de filtrado (D-30):** `/web/webclient/load_menus` ya aplica grupos + `active_test`, así que
+la presencia del xmlid en `getAll()` **es** el permiso. Sin xmlid resoluble → la entrada no se
+renderiza (rail, drawer, flyout, all-apps y home). No se usa `hasGroup()` (mismo criterio que D-24).
 
-**Orden del rail (D-20):** Dashboards, Contactos, CRM, Punto de venta, Compras, Facturación, Inventario, Sitio web, Discuss, Calendario, Ajustes.
+**Fuera del rail (D-31):** Contactos, Facturación, Discuss, Calendario y Ajustes quedan sólo en el
+panel "Todas las aplicaciones". Ajustes sigue en el footer del drawer y en `goToSettings()`.
 
-### 5.5 "Todas las aplicaciones" (botón grid, rail-top)
+**Histórico (D-20, v1):** el rail agrupaba 13 apps mapeadas (Dashboards, Contactos, CRM, POS,
+Compras, Facturación, Inventario, Sitio web, Discuss, Calendario, Ajustes) y renderizaba 12/13
+porque `sale.sale_menu_root` y `website_sale.menu_ecommerce` no son app roots.
 
-Abre panel flyout grande listando **todas** las apps de `getApps()` (icono brand si hay mapeo, si no `webIconData`). Click → `selectMenu`.
+### 5.5 "Todas las aplicaciones" (botón grid, rail-footer)
 
-### 5.6 Landing admin — Dashboards (D-10)
+Abre panel flyout grande listando **todas** las apps de `getApps()` (icono brand si el xmlid está en
+`NAV_MAP`, si no `webIconData`, si no `i-grid`). Click → `resolveLeaf(app)` + `selectMenu`.
+Es la única vía de acceso a las apps que no están en el rail (D-31).
 
-Patch sobre `WebClient` (`@web/core/utils/patch`):
+### 5.6 Landing — Home de ERPICO (D-33, reemplaza a D-10)
 
-```js
-import { WebClient } from "@web/webclient/webclient";
-patch(WebClient.prototype, {
-    async _loadDefaultApp() {
-        const menu = useService?NO — hook no disponible en método estático del prototype;
-        // ver §5.6.1
-    },
-});
-```
+**Implementación actual (v1.1):** el home es un `ir.actions.client` con
+`tag="erpico_web_sidebar_home"`, registrado en `registry.category("actions")`; en Odoo 19
+`_executeClientAction` (`webclient/actions/action_service.js`) monta el componente si
+`clientAction.prototype instanceof Component`. El menú `menu_home_root` es root con `sequence=1`,
+así que `getApps()[0]` es el home y **el landing es natural, sin patch**.
 
-> **Ojo implementación**: `_loadDefaultApp` es método de instancia; el servicio `menu` se accede vía `this.menuService` (ya expuesto en WebClient). Patch limpio:
+`landing_patch.js` queda como red de seguridad: `home` → `spreadsheet_dashboard` → `super()`.
 
-```js
-patch(WebClient.prototype, {
-    async _loadDefaultApp() {
-        const isAdmin = this.session?.uid && ...; // verificar group
-        const dashboards = this.menuService.getApps().find(app =>
-            app.xmlid?.includes("spreadsheet_dashboard_menu_root") ||
-            app.name?.toLowerCase().includes("dashboards"));
-        if (dashboards) return this.menuService.selectMenu(dashboards);
-        return super._loadDefaultApp();
-    },
-});
-```
-- **Admin = usuario con group** `spreadsheet_dashboard.group_dashboard_manager` (o fallback: `user_has_groups` vía `orm`). Detalle a cerrar en build.
-- No-admin: `super._loadDefaultApp()` → comportamiento core (primer app).
-- Si `spreadsheet_dashboard` no instalado: `super`.
+Cards v1 (pedido del cliente: sólo las 2 primeras opciones) en `HOME_CARDS`:
+Dashboards (`spreadsheet_dashboard.spreadsheet_dashboard_menu_root`) y CRM (`crm.crm_menu_root`).
+Cada card se filtra por presencia de menú → misma regla de permisos que el rail (D-30).
+
+> **Histórico (D-10, v1):** el landing era la app `spreadsheet_dashboard` mediante patch de
+> `WebClient._loadDefaultApp`, con gate por presencia del menú (D-24) en lugar de `hasGroup`
+> (flaky en boot, `groupCache` sin hydrate).
+
+### 5.6.1 Alternativas evaluadas (búsqueda oficial + OCA, 2026-09-26)
+
+- **Odoo oficial 19.0** (`addons/web`): `web.NavBar.AppsMenu` es el único selector de apps del
+  core; no hay home genérico. `WebClient._loadDefaultApp` + `menuService.getApps()` (patch) es el
+  patrón de referencia para landings.
+- **OCA/web (rama 18.0, la 19.0 aún no publicada)**: no existe ningún módulo de sidebar/app-switcher
+  equivalente. Lo más cercano es `web_quick_start_screen` (home configurable), que resuelve el mismo
+  problema con un modelo Python + ACL + vista, en vez de una client action. Se descarta porque
+  nuestro requisito es "home visible para todos + permisos derivados de los menús" y no queremos
+  añadir modelos/ACL. Patrón equivalente (`registry.category("actions")` + root menu con
+  `sequence=1`) confirmado como válido.
+- **Enterprise**: no accesible (addons private). Nota: `web_enterprise` no toca el rail; el
+  dashboard de Enterprise no existe en community, de ahí la card a `spreadsheet_dashboard`.
 
 ### 5.7 Mobile drawer (≤768px)
 
@@ -360,9 +403,16 @@ $erpico-rail-w: 60px;      $erpico-topbar-h: 52px;
 
 **Riesgos bajos:**
 
-- **R-L1 — Drawer móvil excluye `otherApps` (BUG-S-022):** apps sin icono brand (Email Marketing, Apps) inaccesibles en móvil. Mitigación: agregarlas al drawer o al APP_MAP.
-- **R-L2 — `otherApps` dependen del entorno:** apps instaladas fuera del APP_MAP (13 apps D-20) aparecen en `otherApps` y se ven en panel all-apps. Si el cliente instala más apps sin brand, el rail no las muestra (comportamiento esperado por spec).
+- **R-L1 — Drawer móvil no alcanza las apps fuera del rail (BUG-S-022, abierto):** el drawer itera `state.entries` (mismo contenido que el rail desde v1.1), pero el panel "Todas las aplicaciones" cuelga del `<nav>` del rail, que es `d-none d-lg-flex` → no se abre en móvil. Contactos, Facturación, Discuss, Calendario, Ajustes y apps no mapeadas quedan inalcanzables en pantallas pequeñas. Fix propuesto: Extraer el panel a un sibling del `<nav>` (o duplicarlo en el drawer) y exponer el botón grid en el footer del drawer.
+- **R-L2 — `otherApps` dependen del entorno:** apps instaladas fuera de `NAV_MAP` aparecen sólo en el panel all-apps (D-31). Si el cliente instala más apps, no entran al rail salvo que se añadan a `NAV_MAP` (data, sin tocar código).
 - **R-L3 — Gaps responsivos menores:** 769-991px oculta el rail pero mantiene topbar; 768px exacto tiene ambas vías (toggle + sidebar oculto). Consistente con mockup en ≤768 solo drawer.
 - **R-L4 — Action ID 567 fijo en test fullscreen (`/odoo/action-567`):** depende de `rg.wizard_to_theme` de Odoo 19; si cambia en upgrade, `cdp_fullscreen.js` se rompe. No afecta módulo (test-only).
 - **R-L5 — Debranding coexistente (BUG-S-017):** 3/22 fallos de la suite `erpico_debranding` son preexistentes (assets frontend, `sale_order.picking_policy`), no del sidebar. Re-validar tras próxima reconstrucción del entorno.
 - **R-L6 — Tests CDP con coordinadas absolutas (viewport 1600×900, `getBoundingClientRect`):** frágiles a cambios de layout CSS; versiones Odoo futuras pueden romperlos. Tests de respaldo: smoke + drawer siguen pasando con DOM.
+
+### 9.2b Riesgos v1.1 — rail por entradas (2026-09-26)
+
+- **R-N1 — `sale.sale_menu_root` inactivo:** si un build de Odoo 19 lo activa, entra el target primario y el fallback queda inocuo. Si el build lo renombra, la cadena de 3 candidatos sigue cubriendo. Verificado en runtime: la app Ventas renderiza (CDP).
+- **R-N2 — "Productos" depende de stock:** `stock.menu_product_variant_config_stock` exige grupos de inventario; un usuario comercial sin ellos **no ve** el ícono. Es el comportamiento pedido (D-30), pero conviene que el cliente lo confirme.
+- **R-N3 — Cambio de `activeAppId` → `isEntryActive`:** la marca activa ahora compara `entry.appIds` con `menuService.getCurrentApp().id`; hay que revalidar fullscreen y drawer (`cdp_fullscreen.js`, `cdp_drawer_nav.js`).
+- **R-N4 — Permisos sin recarga en vivo:** si a un usuario se le cambia el grupo con la sesión abierta, el rail se actualiza al recargar (o llamando `menuService.reload()`). No hay suscripción en vivo en v1.

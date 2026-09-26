@@ -4,27 +4,14 @@ import { Component, onWillStart, onMounted, onWillUnmount, useState } from "@odo
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { SwitchCompanyMenu } from "@web/webclient/switch_company_menu/switch_company_menu";
-
-const BRAND_ICON = (name) =>
-    `/erpico_web_sidebar/static/src/icons/${name}.svg`;
-const SPRITE = (id) =>
-    `/erpico_web_sidebar/static/src/icons/ui-sprite.svg#${id}`;
-
-export const APP_MAP = [
-    { xmlid: "spreadsheet_dashboard.spreadsheet_dashboard_menu_root", icon: { kind: "sprite", src: SPRITE("i-dashboard") } },
-    { xmlid: "contacts.menu_contacts", icon: { kind: "sprite", src: SPRITE("i-building") } },
-    { xmlid: "crm.crm_menu_root", icon: { kind: "img", src: BRAND_ICON("brand-clientes-reportes") } },
-    { xmlid: "sale.sale_menu_root", icon: { kind: "img", src: BRAND_ICON("brand-pedidos-devoluciones") } },
-    { xmlid: "point_of_sale.menu_point_root", icon: { kind: "img", src: BRAND_ICON("brand-punto-de-venta") } },
-    { xmlid: "purchase.menu_purchase_root", icon: { kind: "img", src: BRAND_ICON("brand-compras") } },
-    { xmlid: "account.menu_finance", icon: { kind: "img", src: BRAND_ICON("brand-facturacion") } },
-    { xmlid: "stock.menu_stock_root", icon: { kind: "img", src: BRAND_ICON("brand-inventario-ubicacion") } },
-    { xmlid: "website.menu_website_configuration", icon: { kind: "sprite", src: SPRITE("i-globe") } },
-    { xmlid: "website_sale.menu_ecommerce", icon: { kind: "img", src: BRAND_ICON("brand-ecommerce-integrado") } },
-    { xmlid: "mail.menu_root_discuss", icon: { kind: "sprite", src: SPRITE("i-bell") } },
-    { xmlid: "calendar.mail_menu_calendar", icon: { kind: "sprite", src: SPRITE("i-calendar") } },
-    { xmlid: "base.menu_administration", icon: { kind: "sprite", src: SPRITE("i-settings") } },
-];
+import {
+    buildAppIcons,
+    buildMenuIndex,
+    resolveEntries,
+    resolveLeaf,
+    SETTINGS_MENU_XMLID,
+    SPRITE,
+} from "./nav_entries";
 
 export class Sidebar extends Component {
     static template = "erpico_web_sidebar.Sidebar";
@@ -41,10 +28,10 @@ export class Sidebar extends Component {
         }
         this.state = useState({
             ready: false,
-            railApps: [],
+            entries: [],
             otherApps: [],
             activeAppId: null,
-            flyoutApp: null,
+            flyoutEntry: null,
             allAppsOpen: false,
             drawerOpen: false,
             fullscreenHidden: false,
@@ -55,30 +42,19 @@ export class Sidebar extends Component {
         this._onUIUpdated = this._onUIUpdated.bind(this);
         this._rafId = null;
 
-        onWillStart(async () => {
-            const apps = this.menuService.getApps();
-            const iconsByXmlid = new Map(
-                APP_MAP.map(({ xmlid, icon }) => [xmlid, icon])
-            );
-            const rail = [];
-            const other = [];
-            for (const app of apps) {
-                const childrenTree =
-                    this.menuService.getMenuAsTree(app.id).childrenTree;
-                app._childrenTree = childrenTree;
-                app._icon =
-                    iconsByXmlid.get(app.xmlid) ||
-                    (app.webIconData
-                        ? { kind: "img", src: app.webIconData }
-                        : { kind: "sprite", src: SPRITE("i-grid") });
-                const mapped = iconsByXmlid.has(app.xmlid) ? rail : other;
-                mapped.push(app);
+        onWillStart(() => {
+            // D-30: el índice se construye sobre getAll() porque getMenu() sólo
+            // acepta id numérico. Los menús ausentes = sin permiso o módulo no
+            // instalado → la entrada no se renderiza.
+            const index = buildMenuIndex(this.menuService);
+            this._menuIndex = index;
+            this._appIcons = buildAppIcons();
+            this._appIconById = new Map();
+            for (const app of this.menuService.getApps()) {
+                this._appIconById.set(app.id, this._iconFor(app));
             }
-            const byXmlid = new Map(rail.map((a) => [a.xmlid, a]));
-            this.state.railApps = APP_MAP.map(({ xmlid }) => byXmlid.get(xmlid)).filter(
-                Boolean
-            );
-            this.state.otherApps = other;
+            this.state.entries = resolveEntries(this.menuService, index);
+            this.state.otherApps = this.menuService.getApps();
             this.state.activeAppId = this._currentAppId();
             this.state.ready = true;
         });
@@ -99,9 +75,28 @@ export class Sidebar extends Component {
         });
     }
 
+    _iconFor(app) {
+        const byXmlid = this._appIcons || (this._appIcons = buildAppIcons());
+        return (
+            byXmlid.get(app.xmlid) ||
+            (app.webIconData
+                ? { kind: "img", src: app.webIconData }
+                : { kind: "sprite", src: SPRITE("i-grid") })
+        );
+    }
+
+    /** Icono cacheado de una app del panel "Todas las aplicaciones". */
+    iconFor(app) {
+        return this._appIconById.get(app.id) || this._iconFor(app);
+    }
+
     _currentAppId() {
         const app = this.menuService.getCurrentApp();
         return app ? app.id : null;
+    }
+
+    isEntryActive(entry) {
+        return entry.appIds.includes(this.state.activeAppId);
     }
 
     _syncFullscreen() {
@@ -127,7 +122,7 @@ export class Sidebar extends Component {
             const mode = evt && evt.detail;
             this.state.fullscreenHidden = mode === "fullscreen";
         }
-        // Highlight de app activa dinámico tras cualquier navegación (A3)
+        // Highlight de la entrada activa tras cualquier navegación
         this.state.activeAppId = this._currentAppId();
     }
 
@@ -137,7 +132,7 @@ export class Sidebar extends Component {
                 this._closeDrawer();
             } else if (this.state.allAppsOpen) {
                 this.state.allAppsOpen = false;
-            } else if (this.state.flyoutApp) {
+            } else if (this.state.flyoutEntry) {
                 this._closeFlyout();
             }
         }
@@ -149,39 +144,27 @@ export class Sidebar extends Component {
 
     _closeDrawer() {
         this.state.drawerOpen = false;
-        this.state.flyoutApp = null;
+        this.state.flyoutEntry = null;
         this.state.allAppsOpen = false;
         this._pointerInFlyout = false;
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
     }
 
-    /** Nodo accionable: raíz con acción o primer hoja del árbol. */
-    _resolveLeaf(menu) {
-        if (!menu) {
-            return menu;
-        }
-        if (menu.actionID) {
-            return menu;
-        }
-        const children =
-            menu._childrenTree || this.menuService.getMenuAsTree(menu.id).childrenTree;
-        for (const child of children) {
-            const leaf = this._resolveLeaf(child);
-            if (leaf) {
-                return leaf;
-            }
-        }
-        return undefined;
-    }
-
-    selectApp(app) {
+    selectEntry(entry) {
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
-        this._open(this._resolveLeaf(app));
+        const target =
+            entry.sections.find((section) => section.leaf) || entry.sections[0];
+        this._open(target ? target.leaf : null);
     }
 
     openItem(menu) {
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
-        this._open(this._resolveLeaf(menu));
+        this._open(resolveLeaf(menu, this.menuService));
+    }
+
+    openApp(app) {
+        if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
+        this._open(resolveLeaf(app, this.menuService));
     }
 
     _open(leaf) {
@@ -194,12 +177,8 @@ export class Sidebar extends Component {
 
     /** Ir a Ajustes (configuración general) */
     goToSettings() {
-        const settingsApp = [...this.state.railApps, ...this.state.otherApps]
-            .find(a => a.xmlid === "base.menu_administration");
-        const leaf = settingsApp ? this._resolveLeaf(settingsApp) : undefined;
-        if (leaf) {
-            this.menuService.selectMenu(leaf);
-        }
+        const menu = this._menuIndex.get(SETTINGS_MENU_XMLID);
+        this._open(menu ? resolveLeaf(menu, this.menuService) : null);
         this.state.drawerOpen = false;
     }
 
@@ -210,9 +189,9 @@ export class Sidebar extends Component {
         }
     }
 
-    hoverApp(app) {
+    hoverEntry(entry) {
         if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
-        this.state.flyoutApp = app;
+        this.state.flyoutEntry = entry;
     }
 
     _onFlyoutEnter() {
@@ -228,26 +207,26 @@ export class Sidebar extends Component {
     clearHover() {
         this._clearHoverTimer = setTimeout(() => {
             if (!this._pointerInFlyout) {
-                this.state.flyoutApp = null;
+                this.state.flyoutEntry = null;
             }
         }, 180);
     }
 
-    _openFlyout(app) {
+    _openFlyout(entry) {
         this._cancelHoverTimer();
-        this.state.flyoutApp = app;
+        this.state.flyoutEntry = entry;
     }
 
     _closeFlyout() {
         this._pointerInFlyout = false;
         this._cancelHoverTimer();
-        this.state.flyoutApp = null;
+        this.state.flyoutEntry = null;
     }
 
-    _onRailKeydown(app, ev) {
+    _onRailKeydown(entry, ev) {
         if (ev.key === "ArrowRight" || ev.key === "ArrowDown") {
             ev.preventDefault();
-            this._openFlyout(app);
+            this._openFlyout(entry);
         }
         if (ev.key === "Escape") {
             this._closeFlyout();
@@ -260,7 +239,7 @@ export class Sidebar extends Component {
     }
 
     get allAppsList() {
-        return [...this.state.railApps, ...this.state.otherApps];
+        return this.state.otherApps;
     }
 }
 

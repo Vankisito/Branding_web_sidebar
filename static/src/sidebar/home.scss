@@ -1,0 +1,134 @@
+// ----------------------------------------------------------------------
+// D-33 — Home de ERPICO. Tokens espejo de sidebar.scss (los ficheros SCSS
+// del bundle no comparten scope, por eso se replican los 6 valores usados).
+// ----------------------------------------------------------------------
+$erpico-horizon: #2c85c7;
+$erpico-horizon-strong: #1f6da8;
+$erpico-horizon-tint: #edf5fb;
+$erpico-chalk: #f7f9fb;
+$erpico-ink: #0c112e;
+$erpico-muted: #657086;
+$erpico-line: #e4eaf0;
+$erpico-radius: 8px;
+
+.o_erpico_home {
+    min-height: 100%;
+    padding: 32px 40px 48px;
+    background: $erpico-chalk;
+    color: $erpico-ink;
+    font-family: 'Work Sans', sans-serif;
+
+    .o_erpico_home_header {
+        margin-bottom: 24px;
+    }
+
+    .o_erpico_home_title {
+        margin: 0;
+        font-family: 'Outfit', sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        color: $erpico-ink;
+    }
+
+    .o_erpico_home_subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: $erpico-muted;
+    }
+
+    .o_erpico_home_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        max-width: 1080px;
+    }
+
+    .o_erpico_home_card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        width: 100%;
+        padding: 18px 20px;
+        border: 1px solid $erpico-line;
+        border-radius: 12px;
+        background: #ffffff;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+
+        &:hover,
+        &:focus-visible {
+            border-color: $erpico-horizon;
+            box-shadow: 0 6px 18px rgba($erpico-ink, 0.08);
+            outline: none;
+        }
+
+        .o_erpico_home_card_icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: $erpico-horizon-tint;
+
+            img {
+                width: 28px;
+                height: 28px;
+                object-fit: contain;
+            }
+
+            svg {
+                width: 28px;
+                height: 28px;
+                fill: $erpico-horizon;
+            }
+        }
+
+        .o_erpico_home_card_body {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .o_erpico_home_card_title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: $erpico-ink;
+        }
+
+        .o_erpico_home_card_text {
+            font-size: 13px;
+            color: $erpico-muted;
+        }
+
+        .o_erpico_home_card_arrow {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-left: auto;
+            fill: $erpico-muted;
+        }
+
+        &:hover .o_erpico_home_card_arrow {
+            fill: $erpico-horizon-strong;
+        }
+    }
+
+    .o_erpico_home_empty {
+        margin: 0;
+        font-size: 14px;
+        color: $erpico-muted;
+    }
+
+    @media (max-width: 991px) {
+        padding: 24px 20px 40px;
+
+        .o_erpico_home_grid {
+            grid-template-columns: 1fr;
+        }
+    }
+}

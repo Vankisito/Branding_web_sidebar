@@ -125,3 +125,92 @@ docker exec -i odoo_sidebar_test odoo -d sidebar_test --db_host=db_sidebar_test 
 - Todo bug de QA va a `Bugs.md` con ID `BUG-S-XXX` **antes** de arreglarlo.
 - CDP: adjuntar/pegar salida de consola (0 errores) como evidencia en `Changelog.md`.
 - Al cerrar Fase 5, actualizar el resumen de §1 con fecha y resultado real.
+
+---
+
+## 2B. Cobertura v1.1 — rail por entradas + home (2026-09-26)
+
+### Unit (hoot — `web.assets_unit_tests`, `static/tests/nav_entries.test.js`)
+
+| # | Test | Cubre | Estado |
+|---|---|---|---|
+| U1 | Índice xmlid → menú sobre `getAll()` | D-30 (no hay lookup por xmlid en core) | ✅ |
+| U2 | Orden de `NAV_MAP` + descarte de entradas sin permiso | D-29 / D-30 | ✅ |
+| U3 | Ventas cae al xmlid candidato siguiente (root `active="False"`) | D-29 / R-N1 | ✅ |
+| U4 | Marketing: 2 grupos; 1 grupo si falta SMS | D-32 | ✅ |
+| U5 | `appIds` para la marca activa | D-29 | ✅ |
+| U6 | `resolveLeaf`: propia acción / descendente / sin acción | D-13 | ✅ |
+| U7 | Cards del home filtradas por permisos | D-33 / D-30 | ✅ |
+| U8 | Iconos de marca por xmlid | D-11 | ✅ |
+
+Ejecutados también en Node con un `menuService` simulado (12 asserts, todo OK) para no depender del
+stack Docker. Correr en Odoo: `--test-enable --test-tags /erpico_web_sidebar` (eso sólo cubre tests
+Python: el módulo no tiene, da `0 tests`). Los tests Hoot corren en browser.
+
+**Hoot en browser (`/web/tests?module=erpico_web_sidebar`): NO VERIFICADO en este entorno.**
+Al abrir el runner con Puppeteer la página monta `HOOT-CONTAINER` pero no ejecuta los tests
+(`odoo.loader.modules` = 64, sin factories de Hoot cargadas) y el loader reporta
+`modules needed by other modules but have not been defined:
+[@erpico_web_sidebar/static/src/sidebar/nav_entries]`. Causa pendiente de investigación: el
+wrapper `hoot_module_loader.js` renombra los módulos con sufijo `" (hoot)"` y las dependencias
+declaradas por los tests no se resuelven. **Fix ya aplicado** (sí era un bug real del manifest):
+`nav_entries.js` debe estar explícito en `web.assets_unit_tests`, porque el bundle de tests no
+arrastra `web.assets_backend`; sin eso el error de dependencia ocurre siempre. La cobertura
+efectiva de la lógica JS queda en (a) los asserts Node y (b) la suite CDP E2E, que ejercita la
+UI real.
+
+### Runtime (CDP — ejecutado 2026-09-26 contra Docker, Odoo 19.0-20260908, puerto 8071)
+
+| # | Check | Cubre | Script | Estado |
+|---|---|---|---|---|
+| C13 | `/odoo` renderiza `.o_erpico_home` (landing = home, no dashboards) | D-33 | `cdp_home.js` | ✅ |
+| C14 | Home muestra exactamente 2 cards en orden (Dashboards, CRM) | D-33 | `cdp_home.js` | ✅ |
+| C15 | Click en cada card navega a la app destino | D-33 | `cdp_home.js` | ✅ |
+| C16 | Orden del rail = 10 entradas de `NAV_MAP` (por `aria-label`) | D-29 | `cdp_allapps.js` (A6 reescrito) | ✅ |
+| C17 | Usuario sin POS/stock/sales → los íconos **no** aparecen | D-30 | `cdp_matrix.js` (reescrito) | ✅ |
+| C18 | Fullscreen/drawer siguen OK con `isEntryActive` | R-N3 | `cdp_fullscreen.js`, `cdp_drawer_nav.js` | ✅ |
+
+### Resultado real de la suite CDP (2026-09-26)
+
+Los 10 scripts pasan: `cdp_home`, `cdp_allapps`, `cdp_smoke`, `cdp_hover`, `cdp_drawer`,
+`cdp_drawer_nav`, `cdp_layout`, `cdp_fullscreen`, `cdp_settings`, `cdp_matrix`.
+
+Evidencia de C17 (matriz de permisos, logins reales verificados por `get_session_info().uid`):
+
+| Usuario | Grupos | Rail observado | Home |
+|---|---|---|---|
+| `admin` (uid 2) | `base.group_system` | 10 entradas (orden D-29) | 2 cards |
+| `ventas` (uid 17) | `base.group_user` + `sales_team.group_sale_salesman` | 5: Inicio, CRM, Ventas, Ecommerce, Website | 2 cards |
+| `basic` (uid 18) | `base.group_user` | 2: Inicio, Website | 1 card (CRM filtrado) |
+
+`Website` aparece para `basic` porque `website.menu_website_configuration` sólo exige
+`Role / User`, grupo que core concede a los internal users: el sidebar refleja core, no lo oculta.
+
+### Trampas de Odoo 19 encontradas al validar (importante para cualquier test CDP)
+
+1. **`/web/logout` no existe** (404). La ruta correcta es **`/web/session/logout`**. Con la ruta
+   vieja la sesión anterior sobrevive: los checks de permisos corrían con el usuario previo y
+   daban falsos verdes (`cdp_matrix.js` reportaba 10 entradas para `basic`).
+2. **Un login por contexto de browser aislado.** Reutilizar la misma pestaña para 3 logins deja el
+   form de login sin JS funcional (el click no emite POST) y cuelga la navegación. `cdp_matrix.js`
+   ahora usa `browser.createBrowserContext()` por usuario.
+3. **`res.users.password` es campo computado.** `write({'password': ...})` y
+   `write({'new_password': ...})` no hashean nada vía `odoo shell`; hay que usar
+   `user._set_encrypted_password(user.id, ctx.hash(pw))` y `env.cr.commit()` — ojo: `odoo shell`
+   hace **rollback** al salir, así que sin commit los usuarios no existen.
+4. **Login en Odoo 19 es un formulario HTML plano**, no el webclient: esperar a que el botón sea
+   visible y a que `window.odoo` exista antes de hacer click, si no falla con
+   "Node is either not clickable or not an Element".
+5. **`odoo shell` hace rollback**: cualquier alta de datos de prueba (usuarios, etc.) necesita
+   `env.cr.commit()` explícito o no persiste.
+6. **RPC JSON**: `fetch('/web/session/get_session_info', {...})` responde 415 si no se manda
+   `Content-Type: application/json` + `X-Requested-With: XMLHttpRequest`.
+7. **Assets cacheados en memoria del proceso**: tras cambiar `__manifest__.py` hay que **reiniciar
+   el contenedor** de Odoo; `-u` no refresca el manifest cacheado y el bundle se regenera con el
+   contenido viejo.
+
+### Estado de la BD de QA (`sidebar_test`, entorno local, no afecta al repo)
+
+- Instalados para poder validar: `sale_management` (activa `sale.sale_menu_root`, que nace
+  `active="False"`) y `mass_mailing_sms` (2º grupo de Marketing).
+- Usuarios de prueba creados: `ventas` (uid 17) y `basic` (uid 18).

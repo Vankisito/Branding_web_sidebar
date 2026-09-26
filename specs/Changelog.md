@@ -5,6 +5,79 @@
 
 ---
 
+## Sesión 2026-09-26 — QA runtime v1.1 completa (C13-C18) + trampas Odoo 19
+
+### Qué se hizo
+
+Ejecutada la QA runtime de v1.1 contra el stack Docker (`compose.test.yml`, puerto 8071,
+Odoo 19.0-20260908). **Los 10 scripts CDP pasan**: `cdp_home`, `cdp_allapps`, `cdp_smoke`,
+`cdp_hover`, `cdp_drawer`, `cdp_drawer_nav`, `cdp_layout`, `cdp_fullscreen`, `cdp_settings`,
+`cdp_matrix`.
+
+**C13-C18 cerrados** (antes ⏳): Home es el landing y muestra 2 cards que navegan, el rail
+respeta el orden de `NAV_MAP` (10 entradas), y un usuario sin POS/stock/ventas no ve esos
+íconos. La matriz se validó con logins reales (uid confirmado por `get_session_info`):
+
+| Usuario | Rail observado | Home |
+|---|---|---|
+| `admin` (uid 2) | 10 entradas | 2 cards |
+| `ventas` (uid 17) | 5: Inicio, CRM, Ventas, Ecommerce, Website | 2 cards |
+| `basic` (uid 18) | 2: Inicio, Website | 1 card (CRM filtrado) |
+
+`Website` aparece para `basic` porque su xmlid sólo exige `Role / User`, grupo que core
+concede a los internal users: el sidebar refleja core, no lo oculta.
+
+**Bugs de los propios scripts de test encontrados y corregidos** (no del módulo):
+- `cdp_smoke.js`: labels y assert obsoletos de landings anteriores a v1.1; ahora valida Home.
+- `cdp_drawer.js` comprobaba Ajustes *después* de cerrar el drawer; los checks (10 entradas,
+  grupos de Marketing, backdrop, Escape) se hacen con el drawer abierto.
+- `cdp_settings.js` ahora verifica URL real `/odoo/settings` y que el drawer cierre.
+- `cdp_drawer_nav.js` log invertido: `NO — cerró (OK)` en lugar de leerse como fallo.
+- `cdp_matrix.js` reescrito: contextos de browser aislados por usuario (reutilizar la
+  pestaña hacía que el 2º login no emitiera POST y colgara la navegación) y verificación de
+  sesión por RPC en vez de por la URL.
+
+**Fix real de manifest**: `web.assets_unit_tests` no arrastra `web.assets_backend`, así que
+`nav_entries.js` (el módulo bajo test) faltaba siempre en el bundle de Hoot. Ahora se declara
+explícitamente junto al glob de tests.
+
+**Hoot en browser: NO VERIFICADO.** `/web/tests?module=erpico_web_sidebar` monta
+`HOOT-CONTAINER` pero no ejecuta los tests con Puppeteer (`odoo.loader.modules` = 64, sin
+factories de Hoot) y el loader reporta
+`modules needed by other modules but have not been defined: [@erpico_web_sidebar/static/src/sidebar/nav_entries]`.
+Pendiente: el wrapper `hoot_module_loader.js` sufija los módulos con `" (hoot)"` y las
+dependencias declaradas no se resuelven. La lógica JS queda cubierta por los asserts Node y
+por la suite CDP E2E.
+
+**Trampas de Odoo 19 documentadas** (valen para cualquier CDP futuro): `/web/logout` es 404
+(la ruta es `/web/session/logout`; con la ruta vieja los checks corrían con la sesión previa y
+daban falsos verdes), el login es un form HTML plano que necesita el botón visible y
+`window.odoo` existente antes del click, `res.users.password` es computado (hay que usar
+`_set_encrypted_password` + `env.cr.commit()`, y `odoo shell` hace rollback al salir), el RPC
+JSON exige `Content-Type: application/json` + `X-Requested-With: XMLHttpRequest`, y tras
+cambiar `__manifest__.py` hay que **reiniciar el contenedor** (`-u` no refresca el manifest
+cacheado).
+
+### Archivos
+
+- Nuevos: `cdp/cdp_home.js`, `cdp/cdp_hoot.js` (runner Hoot, pendiente), `views/home.xml`,
+  `static/src/sidebar/{nav_entries,home}.js`, `home.{xml,scss}`,
+  `static/src/icons/brand-productos.svg`, `static/tests/nav_entries.test.js`.
+- Modificados: `cdp/cdp_{matrix,drawer,drawer_nav,smoke,settings,allapps}.js`,
+  `__manifest__.py`, `static/src/sidebar/{sidebar.js,sidebar.xml,sidebar.scss,landing_patch.js}`,
+  `specs/{TESTS_COVERAGE,Changelog,Decisiones,Bugs,spec-web-sidebar-v1}.md`,
+  `readme/{USAGE,CHANGELOG}.rst`.
+- Eliminado: `views/webclient_templates.xml`.
+
+### Pendientes
+
+- Hoot en browser (ver arriba).
+- `BUG-S-022` (panel all-apps no alcanzable en móvil) y `BUG-S-031` (drawer limita los
+  submenús a un nivel) siguen abiertos como limitaciones conocidas de v1.1.
+- Baseline de debranding: 3/22 fallos preexistentes, no del módulo.
+
+---
+
 ## Sesión 2026-09-24 — Auditoría runtime core Odoo 19 + fixes S-024...S-028
 
 ### Qué se hizo
@@ -59,6 +132,9 @@ punto a punto contra el código fuente del core Odoo 19 dentro del container
 - `cdp_layout.js`: R2 sin acumulación (content left=60, margin=0).
 - `cdp_fullscreen.js`: C9 pasa (hide fullscreen + restore).
 
+- **Búsqueda OCA completada (2026-09-26):** OCA/web no tiene módulo de sidebar/app-switcher
+  equivalente; el más cercano es `web_quick_start_screen` (home configurable con modelo Python +
+  ACL). Se mantiene el enfoque de client action sin modelos. Detalle en spec §5.6.1.
 ### Estado al cierre
 - Bugs S-001...S-021, S-023, S-024...S-028 resueltos. S-017 (entorno debranding) y S-022 (otherApps drawer) pendientes.
 
@@ -511,3 +587,75 @@ prefijo `BUG-S-` (evita colisión con la suite `erpico_debranding`).
 ### Estado al cierre
 - Fases 0–6 completas. Tests CDP: **C1–C12 verdes**. Bugs S-001…S-018 resueltos. S-017 documentado (entorno, rama debranding).
 - Working tree limpio tras commit + push (9c359ce).
+## Sesión 2026-09-26 — Rail por entradas (D-29…D-30), Home para todos (D-33), Marketing agrupado (D-32)
+
+### Qué se hizo
+
+1. **Rail = entradas, no apps** (D-29/D-30). Nuevo `static/src/sidebar/nav_entries.js` con
+   `NAV_MAP` (10 entradas en el orden pedido por el cliente), `HOME_CARDS`, `buildMenuIndex()`,
+   `resolveEntries()`, `resolveHomeCards()`, `resolveLeaf()`, `buildAppIcons()`. Cada entrada
+   declara secciones con xmlids candidatos; gana el primero presente en `menuService.getAll()`.
+2. **Auditoría de xmlids contra `odoo/odoo` 19.0** (no sólo runtime):
+   - `sale.sale_menu_root` está declarado con `active="False"` → nunca aparece en `getApps()`;
+     por eso Ventas usa la cadena `sale.sale_menu_root` → `sale.menu_sale_order` →
+     `sale.menu_sale_quotations`.
+   - El módulo `product` **no define ningún `<menuitem>`** en v19; Productos cuelga de Inventario
+     (`stock.menu_product_inventory_control` → `stock.menu_product_variant_config_stock`).
+   - Email/SMS Marketing son dos apps distintas (`mass_mailing` seq 115, `mass_mailing_sms` seq 120).
+   - `menuService.getMenu(id)` sólo acepta id numérico → el índice por xmlid se hace con `getAll()`.
+3. **Sidebar filtrado por permisos** (D-30): `load_menus` ya aplica grupos + `active_test`, así que
+   la presencia del xmlid ES el permiso. Sin `hasGroup()`. Drawer, flyout, all-apps y home usan la
+   misma lista → **mitiga BUG-S-022** (el drawer ya no queda fuera Marketing Email/SMS); sigue
+   abierto que el panel all-apps cuelgue del `<nav>` del rail (`d-none d-lg-flex`) y no sea
+   alcanzable en móvil.
+4. **Home de ERPICO** (D-33): `views/home.xml` (menu root `menu_home_root` con `sequence=1` +
+   `ir.actions.client` `erpico_web_sidebar_home`), `static/src/sidebar/home.js|xml|scss`. Se
+   registra en `registry.category("actions")` (en v19 `_executeClientAction` monta el Component si
+   `clientAction.prototype instanceof Component`). v1 renderiza **sólo 2 cards** (Dashboards, CRM).
+   El landing deja de necesitar patch: `apps[0]` es el home.
+5. **Marketing Email/SMS** (D-32): una entrada, dos grupos en el flyout; cada grupo se oculta si su
+   app no está accesible. Mismo comportamiento en el drawer (`.o_erpico_drawer_group`).
+6. **Fuera del rail** (D-31): Contactos, Facturación, Discuss, Calendario y Ajustes quedan sólo en
+   el panel "Todas las aplicaciones". `goToSettings()` resuelve `base.menu_administration` por xmlid.
+7. **Icono nuevo** `static/src/icons/brand-productos.svg` (mismo estilo que el resto: 24×24,
+   `stroke="#72b9ff"`, `stroke-width="1.45"`).
+8. **Limpieza:** eliminado `views/webclient_templates.xml` (vacío y fuera de `data`).
+9. **Tests:** `static/tests/nav_entries.test.js` (hoot, `@odoo/hoot`) agregado a
+   `web.assets_unit_tests`. `cdp/cdp_allapps.js` ahora valida el **orden** de las entradas por
+   `aria-label`. Nuevo `cdp/cdp_home.js` (landing = home, 2 cards, navegación de cada card).
+10. `__manifest__.py` → `19.0.1.1.0`, `data: ["views/home.xml"]`.
+
+### Archivos creados/modificados
+
+- Creados: `static/src/sidebar/nav_entries.js`, `static/src/sidebar/home.js`,
+  `static/src/sidebar/home.xml`, `static/src/sidebar/home.scss`, `static/src/icons/brand-productos.svg`,
+  `views/home.xml`, `static/tests/nav_entries.test.js`, `cdp/cdp_home.js`.
+- Modificados: `__manifest__.py`, `static/src/sidebar/sidebar.js`, `static/src/sidebar/sidebar.xml`,
+  `static/src/sidebar/sidebar.scss` (`.o_erpico_drawer_group`), `static/src/sidebar/landing_patch.js`,
+  `cdp/cdp_allapps.js`, `specs/Decisiones.md` (D-29…D-33), `specs/spec-web-sidebar-v1.md` (§5.1, §5.2,
+  §5.4, §5.5, §5.6, §9.1 + §9.2b riesgos nuevos), `specs/Bugs.md` (BUG-S-022 reformulado),
+  `specs/TESTS_COVERAGE.md` (§2B), `readme/USAGE.rst`, `readme/CHANGELOG.rst` (19.0.1.1.0).
+- Eliminado: `views/webclient_templates.xml`.
+- Fix: el fallback de `landing_patch.js` caía al dashboard cuando el home ya era `apps[0]` (el
+  bucle seguía con el candidato siguiente), de modo que el landing ignoraba el home. Ahora el home
+  manda: si ya es la primera app se deja actuar al core, si no se selecciona explícitamente, y sólo
+  sin home se prueba Dashboards.
+
+### Verificación
+
+- `node --check` en los 5 JS nuevos/modificados + `cdp_home.js` y `cdp_allapps.js`: OK.
+- Lógica de resolución ejecutada en Node contra un `menuService` simulado (12 asserts): orden,
+  filtrado por permisos, fallback de Ventas, grupos de Marketing, `resolveLeaf` profundo/sin acción,
+  cards del home, iconos: **todo OK**.
+- XML parseado (`views/home.xml`, `sidebar.xml`, `home.xml`, `navbar.xml`) y `__manifest__.py` con
+  `ast.literal_eval`: OK.
+- **Pendiente de runtime:** docker está apagado en esta sesión → falta CDP real (`cdp_home.js`,
+  `cdp_allapps.js`, `cdp_matrix.js` con usuario sin POS, `cdp_fullscreen.js`, `cdp_drawer_nav.js`) y
+  el arranque de Odoo con el menú nuevo (recordatorio D-23: reiniciar el contenedor tras editar JS).
+
+### Estado al cierre
+
+- Funcionalidad implementada y verificada a nivel estático/simulado; falta validación en navegador.
+- Ningún commit realizado (esperando orden explícita).
+
+---

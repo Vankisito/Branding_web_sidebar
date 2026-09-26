@@ -22,26 +22,24 @@
                 </a>
 
                 <div class="o_erpico_rail_apps">
-                    <t t-foreach="state.railApps" t-as="app" t-key="app.id">
+                    <t t-foreach="state.entries" t-as="entry" t-key="entry.id">
                         <button
                             type="button"
                             class="o_erpico_rail_btn"
-                            t-att-class="{
-                                'o_active': state.activeAppId === app.id,
-                            }"
-                            t-att-title="app.name"
-                            t-att-aria-label="app.name"
-                            t-on-mouseenter="() => this.hoverApp(app)"
+                            t-att-class="{ 'o_active': this.isEntryActive(entry) }"
+                            t-att-title="entry.label"
+                            t-att-aria-label="entry.label"
+                            t-on-mouseenter="() => this.hoverEntry(entry)"
                             t-on-mouseleave="() => this.clearHover()"
-                            t-on-click.stop="() => this.selectApp(app)"
-                            t-on-keydown="(ev) => this._onRailKeydown(app, ev)"
+                            t-on-click.stop="() => this.selectEntry(entry)"
+                            t-on-keydown="(ev) => this._onRailKeydown(entry, ev)"
                         >
-                            <t t-if="app._icon.kind === 'img'">
-                                <img class="o_erpico_rail_icon" t-att-src="app._icon.src" alt="" />
+                            <t t-if="entry.icon.kind === 'img'">
+                                <img class="o_erpico_rail_icon" t-att-src="entry.icon.src" alt="" />
                             </t>
                             <t t-else="">
                                 <svg class="o_erpico_rail_icon o_erpico_rail_svg" aria-hidden="true">
-                                    <use t-att-href="app._icon.src" />
+                                    <use t-att-href="entry.icon.src" />
                                 </svg>
                             </t>
                         </button>
@@ -64,20 +62,19 @@
                 </div>
             </div>
 
-            <!-- Flyout del app en hover -->
-            <t t-if="state.flyoutApp" t-set="flyoutTree" t-value="state.flyoutApp._childrenTree" />
+            <!-- Flyout de la entrada en hover -->
             <div
-                t-if="state.flyoutApp and !state.allAppsOpen"
+                t-if="state.flyoutEntry and !state.allAppsOpen"
                 class="o_erpico_flyout"
                 t-on-mouseenter="() => this._onFlyoutEnter()"
                 t-on-mouseleave="() => this._onFlyoutLeave()"
             >
                 <div class="o_erpico_flyout_header">
-                    <strong t-esc="state.flyoutApp.name" />
+                    <strong t-esc="state.flyoutEntry.label"/>
                     <button
                         type="button"
                         class="o_erpico_flyout_link"
-                        t-on-click.stop="() => this.selectApp(state.flyoutApp)"
+                        t-on-click.stop="() => this.selectEntry(state.flyoutEntry)"
                     >
                         <span>Ir a la app</span>
                         <svg class="o_erpico_flyout_arrow" aria-hidden="true">
@@ -85,11 +82,18 @@
                         </svg>
                     </button>
                 </div>
-                <ul class="o_erpico_flyout_menu">
-                    <t t-call="erpico_web_sidebar.FlyoutMenu">
-                        <t t-set="items" t-value="flyoutTree" />
-                    </t>
-                </ul>
+                <t t-foreach="state.flyoutEntry.sections" t-as="section" t-key="section.label">
+                    <span
+                        t-if="state.flyoutEntry.sections.length > 1"
+                        class="o_erpico_flyout_group"
+                        t-esc="section.label"
+                    />
+                    <ul class="o_erpico_flyout_menu">
+                        <t t-call="erpico_web_sidebar.FlyoutMenu">
+                            <t t-set="items" t-value="section.childrenTree"/>
+                        </t>
+                    </ul>
+                </t>
             </div>
 
             <!-- Panel "Todas las aplicaciones" -->
@@ -100,20 +104,21 @@
                 <ul class="o_erpico_allapps_grid">
                     <t t-foreach="allAppsList" t-as="app" t-key="app.id">
                         <li>
-                            <t t-if="app._icon.kind === 'img'">
-                                <img class="o_erpico_allapps_icon" t-att-src="app._icon.src" alt="" />
+                            <t t-set="icon" t-value="this.iconFor(app)"/>
+                            <t t-if="icon.kind === 'img'">
+                                <img class="o_erpico_allapps_icon" t-att-src="icon.src" alt="" />
                             </t>
                             <t t-else="">
                                 <svg class="o_erpico_allapps_icon" aria-hidden="true">
-                                    <use t-att-href="app._icon.src" />
+                                    <use t-att-href="icon.src" />
                                 </svg>
                             </t>
-                            <span t-esc="app.name" />
+                            <span t-esc="app.name"/>
                             <button
                                 type="button"
                                 class="o_erpico_allapps_open"
                                 aria-label="Abrir"
-                                t-on-click.stop="() => this.selectApp(app)"
+                                t-on-click.stop="() => this.openApp(app)"
                             />
                         </li>
                     </t>
@@ -121,7 +126,7 @@
             </div>
         </nav>
 
-        <!-- Drawer móvil (M4) -->
+        <!-- Drawer móvil -->
         <t t-if="state.drawerOpen">
             <div class="o_erpico_backdrop" t-on-click="() => { this.state.drawerOpen = false; }" />
             <nav class="o_erpico_drawer">
@@ -142,34 +147,41 @@
                 </div>
 
                 <div class="o_erpico_drawer_apps">
-                    <t t-foreach="state.railApps" t-as="app" t-key="app.id">
+                    <t t-foreach="state.entries" t-as="entry" t-key="entry.id">
                         <div class="o_erpico_drawer_app">
                             <button
                                 type="button"
                                 class="o_erpico_drawer_app_btn"
-                                t-att-class="{ 'o_active': state.activeAppId === app.id }"
-                                t-on-click="() => this.selectApp(app)"
+                                t-att-class="{ 'o_active': this.isEntryActive(entry) }"
+                                t-on-click="() => this.selectEntry(entry)"
                             >
-                                <t t-if="app._icon.kind === 'img'">
-                                    <img class="o_erpico_drawer_icon" t-att-src="app._icon.src" alt="" />
+                                <t t-if="entry.icon.kind === 'img'">
+                                    <img class="o_erpico_drawer_icon" t-att-src="entry.icon.src" alt="" />
                                 </t>
                                 <t t-else="">
                                     <svg class="o_erpico_drawer_icon" aria-hidden="true">
-                                        <use t-att-href="app._icon.src" />
+                                        <use t-att-href="entry.icon.src" />
                                     </svg>
                                 </t>
-                                <span t-esc="app.name" />
+                                <span t-esc="entry.label"/>
                             </button>
-                            <ul t-if="app._childrenTree &amp;&amp; app._childrenTree.length" class="o_erpico_drawer_sub">
-                                <t t-foreach="app._childrenTree" t-as="child" t-key="child.id">
-                                    <li
-                                        t-att-class="{ 'o_active': state.activeAppId === child.id }"
-                                        t-on-click="() => this.openItem(child)"
-                                    >
-                                        <span t-esc="child.name" />
-                                    </li>
-                                </t>
-                            </ul>
+                            <t t-foreach="entry.sections" t-as="section" t-key="section.label">
+                                <span
+                                    t-if="entry.sections.length > 1"
+                                    class="o_erpico_drawer_group"
+                                    t-esc="section.label"
+                                />
+                                <ul t-if="section.childrenTree.length" class="o_erpico_drawer_sub">
+                                    <t t-foreach="section.childrenTree" t-as="child" t-key="child.id">
+                                        <li
+                                            t-att-class="{ 'o_active': section.leaf and section.leaf.id === child.id }"
+                                            t-on-click="() => this.openItem(child)"
+                                        >
+                                            <span t-esc="child.name"/>
+                                        </li>
+                                    </t>
+                                </ul>
+                            </t>
                         </div>
                     </t>
                 </div>
@@ -200,10 +212,10 @@
                 />
             </li>
             <li t-else="">
-                <span class="o_erpico_flyout_group" t-esc="item.name" />
+                <span class="o_erpico_flyout_group" t-esc="item.name"/>
                 <ul class="o_erpico_flyout_sub">
                     <t t-call="erpico_web_sidebar.FlyoutMenu">
-                        <t t-set="items" t-value="item.childrenTree" />
+                        <t t-set="items" t-value="item.childrenTree"/>
                     </t>
                 </ul>
             </li>

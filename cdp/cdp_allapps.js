@@ -91,10 +91,18 @@ async function main() {
             }
         }
 
-        const railBtns = await page.$$('.o_erpico_rail_apps .o_erpico_rail_btn');
+        // D-29: el rail son las entradas de NAV_MAP resueltas (permisos), en orden.
+        const railLabels = await page.$$eval('.o_erpico_rail_apps .o_erpico_rail_btn',
+            els => els.map(el => el.getAttribute('aria-label')));
         const totalRail = await page.$$('.o_erpico_rail_btn');
-        console.log(`  [A6] Botones rail apps: ${railBtns.length} (total rail+footer: ${totalRail.length})`);
-        if (railBtns.length < 10) errors.push(`Rail tiene ${railBtns.length} botones (esperado >=10)`);
+        console.log(`  [A6] Entradas rail: ${railLabels.length} (total rail+footer: ${totalRail.length})`);
+        console.log(`       ${railLabels.join(' | ')}`);
+        const expectedOrder = ['Inicio', 'CRM', 'Ventas', 'Ecommerce', 'POS', 'Inventario', 'Productos', 'Compras', 'Website', 'Marketing - Email/SMS'];
+        const gotOrder = railLabels.filter(l => expectedOrder.includes(l));
+        if (JSON.stringify(gotOrder) !== JSON.stringify(expectedOrder)) {
+            errors.push(`Orden del rail inesperado: ${gotOrder.join(', ')}`);
+        }
+        if (railLabels.some(l => !l)) errors.push('Entradas del rail sin aria-label');
 
         console.log('');
         console.log('=== Resumen AllApps ===');

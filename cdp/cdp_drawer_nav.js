@@ -62,7 +62,7 @@ async function main() {
 
             const drawerAfterNav = await page.$('.o_erpico_drawer');
             const drawerVisible = drawerAfterNav && (await drawerAfterNav.evaluate(el => el.offsetParent !== null));
-            console.log(`  [D3] Después de click app → drawer visible: ${drawerVisible ? '⚠️ SÍ (BUG-S-013)' : '✅ NO (cerró)'}`);
+            console.log(`  [D3] Después de click app → drawer visible: ${drawerVisible ? '⚠️ SÍ (BUG-S-013)' : 'NO — cerró (OK)'}`);
             if (drawerVisible) errors.push('BUG-S-013: drawer no cierra al navegar app');
         } else {
             console.log('  ❌ No hay app btn en drawer');
@@ -78,7 +78,7 @@ async function main() {
 
             const drawerAfterSub = await page.$('.o_erpico_drawer');
             const drawerVisibleSub = drawerAfterSub && (await drawerAfterSub.evaluate(el => el.offsetParent !== null));
-            console.log(`  [D4] Después de click submenu → drawer visible: ${drawerVisibleSub ? '⚠️ SÍ (BUG-S-013)' : '✅ NO (cerró)'}`);
+            console.log(`  [D4] Después de click submenu → drawer visible: ${drawerVisibleSub ? '⚠️ SÍ (BUG-S-013)' : 'NO — cerró (OK)'}`);
             if (drawerVisibleSub) errors.push('BUG-S-013: drawer no cierra al navegar submenu');
         }
 
@@ -91,7 +91,7 @@ async function main() {
             await sleep(2000);
             const drawerAfterSettings = await page.$('.o_erpico_drawer');
             const drawerVisibleSettings = drawerAfterSettings && (await drawerAfterSettings.evaluate(el => el.offsetParent !== null));
-            console.log(`  [D5] Después de click Ajustes → drawer visible: ${drawerVisibleSettings ? '❌' : '✅ cerró'}`);
+            console.log(`  [D5] Después de click Ajustes → drawer visible: ${drawerVisibleSettings ? '❌ SÍ (debería cerrar)' : 'NO — cerró (OK)'}`);
         }
 
         console.log('');

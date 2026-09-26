@@ -54,6 +54,29 @@ async function main() {
         const backdrop = await page.$('.o_erpico_backdrop');
         console.log(`  ${backdrop ? '✅' : '❌'} Backdrop ${backdrop ? 'presente' : 'NO presente'}`);
 
+        // Checks con el drawer ABIERTO (D-29/D-31: mismas entradas que el rail)
+        const drawerLogo = await page.$('.o_erpico_drawer_logo');
+        const settingsBtn = await page.$('.o_erpico_drawer_settings');
+        const drawerEntries = await page.$$eval('.o_erpico_drawer_app_btn', els =>
+            els.map(el => el.textContent.trim())
+        );
+        console.log(`  ${drawerLogo ? '✅' : '❌'} Logo ERPICO presente`);
+        console.log(`  ${settingsBtn ? '✅' : '❌'} Botón Ajustes presente`);
+        console.log(`  [D-entries] Drawer: ${drawerEntries.length} → ${drawerEntries.join(' | ')}`);
+        if (!drawerLogo) {
+            errors.push('Logo del drawer no encontrado');
+        }
+        if (!settingsBtn) {
+            errors.push('Botón Ajustes del drawer no encontrado');
+        }
+        if (drawerEntries.length !== 10) {
+            errors.push(`Se esperaban 10 entradas en el drawer, hay ${drawerEntries.length}`);
+        }
+        const drawerGroups = await page.$$eval('.o_erpico_drawer_group', els =>
+            els.map(el => el.textContent.trim())
+        );
+        console.log(`  [D-groups] Grupos Marketing en drawer: ${drawerGroups.join(' | ') || '(ninguno)'}`);
+
         if (backdrop) {
             await backdrop.click();
             await sleep(500);
@@ -62,12 +85,11 @@ async function main() {
 
         await page.keyboard.press('Escape');
         await sleep(500);
-        console.log('  ✅ Escape cierra drawer (capture phase)');
-
-        const drawerLogo = await page.$('.o_erpico_drawer_logo');
-        const settingsBtn = await page.$('.o_erpico_drawer_settings');
-        console.log(`  ${drawerLogo ? '✅' : '❌'} Logo ERPICO presente`);
-        console.log(`  ${settingsBtn ? '✅' : '❌'} Botón Ajustes presente`);
+        const closedAfterEscape = await page.$('.o_erpico_drawer');
+        console.log(`  ${!closedAfterEscape ? '✅' : '❌'} Escape cierra drawer (capture phase)`);
+        if (closedAfterEscape) {
+            errors.push('Escape no cerró el drawer');
+        }
     } catch (e) {
         errors.push(e.message);
         console.log(`  ❌ ${e.message}`);

@@ -48,14 +48,18 @@ async function main() {
             await sleep(2000);
 
             const drawerAfter = await page.$('.o_erpico_drawer');
-            console.log(`  ✅ Drawer cierra tras click Ajustes`);
+            console.log(`  ${!drawerAfter ? '✅' : '❌'} Drawer ${!drawerAfter ? 'cierra' : 'SIGUE ABIERTO'} tras click Ajustes`);
+            if (drawerAfter) {
+                errors.push('El drawer no cierra tras click en Ajustes');
+            }
 
             const currentUrl = page.url();
-            console.log(`  ✅ URL actual: ${currentUrl}`);
-            if (!currentUrl.includes('/odoo/dashboards')) {
-                console.log('  ✅ URL cambió (BUG-S-012 resuelto)');
+            console.log(`  URL actual: ${currentUrl}`);
+            if (currentUrl.endsWith('/odoo/settings')) {
+                console.log('  ✅ Navegó a Ajustes (BUG-S-012 resuelto)');
             } else {
-                console.log('  ❌ URL sigue en dashboards (BUG-S-012 no resuelto)');
+                console.log('  ❌ No navegó a /odoo/settings (BUG-S-012 no resuelto)');
+                errors.push(`goToSettings() no navegar a /odoo/settings (quedó en ${currentUrl})`);
             }
         } else {
             console.log('  ❌ Botón Ajustes no encontrado');

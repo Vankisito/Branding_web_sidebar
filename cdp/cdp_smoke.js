@@ -68,16 +68,21 @@ async function main() {
     console.log(`  ${navbar ? '✅' : '❌'} .o_main_navbar ${navbar ? 'encontrado' : 'NO encontrado'}`);
 
     // 4. Check rail visible (verifica visibilidad real, no solo DOM)
-    console.log('[C2] Rail visible con apps del APP_MAP');
+    console.log('[C2] Rail visible con las entradas de NAV_MAP (D-29)');
     const railBtns = await page.$$eval('.o_erpico_rail_btn', els =>
         els.filter(el => el.offsetParent !== null)
     );
     console.log(`  ✅ Rail visible con ${railBtns.length} botones`);
 
-    // 5. Landing admin = Dashboards
-    console.log('[C5] Landing admin = Dashboards');
+    // 5. Landing = home de ERPICO (D-33), no el dashboard nativo (D-10)
+    console.log('[C5] Landing = Inicio (home ERPICO)');
     const currentUrl = page.url();
-    console.log(`  ✅ URL actual: ${currentUrl}`);
+    console.log(`  URL actual: ${currentUrl}`);
+    const isHome = await page.$('.o_erpico_home');
+    console.log(`  ${isHome ? '✅' : '❌'} .o_erpico_home ${isHome ? 'renderizado' : 'NO renderizado'}`);
+    if (!isHome) {
+        errors.push('El landing no es el home de ERPICO');
+    }
 
     // Summary
     console.log('');

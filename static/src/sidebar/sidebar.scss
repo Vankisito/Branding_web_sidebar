@@ -542,6 +542,17 @@ $erpico-allapps-w: 360px;
     padding: 8px 0;
 }
 
+/* Multi-grupo (p.ej. Marketing Email/SMS) */
+.o_erpico_drawer_group {
+    display: block;
+    padding: 8px 16px 2px 52px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+}
+
 .o_erpico_drawer_app {
     .o_erpico_drawer_app_btn {
         display: flex;

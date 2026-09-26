@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        D-33 — Home de ERPICO para todos los usuarios.
+
+        El menu es root (sin parent) con sequence=1, así que `menuService.getApps()`
+        lo devuelve como apps[0] y Odoo aterriza ahí sin necesidad de patch.
+        El acceso no lleva `groups`: lo controla el propio menu, y las cards del
+        home se filtran por los menus que el usuario puede ver (mismo criterio
+        que el rail, D-30).
+    -->
+    <record id="action_erpico_home" model="ir.actions.client">
+        <field name="name">Inicio</field>
+        <field name="tag">erpico_web_sidebar_home</field>
+    </record>
+
+    <menuitem
+        id="menu_home_root"
+        name="Inicio"
+        web_icon="erpico_web_sidebar,static/src/images/erpico-favicon.png"
+        action="action_erpico_home"
+        sequence="1"
+    />
+</odoo>
