@@ -1,15 +1,24 @@
 {
     "name": "ERPICO Web Sidebar",
     "summary": "Tiendanube-style sidebar navigation, home and minimal topbar for Odoo 19",
-    "version": "19.0.1.1.0",
+    "version": "19.0.1.2.0",
     "license": "LGPL-3",
     "author": "Habitat Digital",
     "website": "https://github.com/Vankisito/Branding_web_sidebar",
     "category": "Productivity",
     "depends": [
         "web",
+        "sale",
+        "sales_team",
+        "purchase",
+        "stock",
+        "point_of_sale",
+        "website",
+        "website_sale",
+        "crm",
     ],
     "data": [
+        "security/data.xml",
         "views/home.xml",
     ],
     "assets": {

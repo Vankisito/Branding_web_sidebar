@@ -5,6 +5,93 @@
 
 ---
 
+## Sesión 2026-09-27 — Grupos de permisos por módulo (BUG-S-035 → 041)
+
+### Qué se pidió
+
+Un grupo de permisos por módulo nativo. En POS, por ejemplo, un grupo que herede
+de *User* y que limite los submenús que el usuario puede ver. Nada más.
+
+### Qué se hizo de más (y se quitó)
+
+Primera vuelta: se creó una `ir.module.category` propia + un `res.groups.privilege`
+propio para agrupar los 6 grupos, más campos `comment` descriptivos. El cliente lo
+descartó: *"no quiero que crees un nuevo tipo de permisos"*. Grupo y permiso nuevo
+es una taxonomía que el cliente no pidió. **Eliminado**: los 6 grupos se crean sin
+categorizar, que es el estado por defecto de un grupo creado a mano.
+
+### El error de fondo (BUG-S-035)
+
+La primera implementación de los grupos fue por `security/menu_restrictions.xml`,
+haciendo `<field name="group_ids" eval="[(4, ref('...group_pos_erpico'))]"/>` sobre
+26 menús nativos. El m2m `group_ids` es **aditivo**: `(4, id)` añade un grupo, no
+restringe. Síntoma: *"los permisos del módulo de POS siguen siendo los mismos, user
+y admin, y ahora hay grupos nuevos en todas las apps"*. Que es justo lo que hace un
+`(4, ...)`: los menús conservan User/Admin **más** el grupo nuevo, y los 6 grupos
+aparecen en el editor de menús de todas las apps.
+
+La premisa era errónea: el sidebar no decide permisos, `nav_entries.js:197`
+(`resolveEntries`) resuelve `NAV_MAP` contra `menuService.getAll()`, y
+`/web/webclient/load_menus` ya devuelve esa lista filtrada por grupos. No hay que
+tocar ningún menú.
+
+### El diseño final
+
+Cada grupo hereda del grupo **User** de su módulo con `implied_ids`
+(`res_groups_implied_rel`), y **no** del Administrator. Ahí está el "limitar
+submenús": los submenús que Odoo gatea al Administrator se quedan ocultos por
+herencia, sin reescribir nada.
+
+### Verificación (POS)
+
+| Submenú | Gate | Visible para POS ERPICO |
+|---|---|---|
+| Point of Sale (root) | `{54,55}` | SI |
+| Orders | `{55,54}` | SI |
+| Sessions | `{54}` | SI |
+| Payments | `{55,54}` | SI |
+| Reporting | sin gate | SI |
+| Session Report | sin gate | SI |
+| **Configuration** | `{55}` | **NO** |
+| **Presets** | `{56}` | **NO** |
+
+`hereda de pos User? True` / `¿hereda de pos Manager? False`
+
+### Trampas de Odoo 19 encontradas
+
+| Trampa | Detalle |
+|---|---|
+| `res.groups.category_id` no existe | Sustituido por `privilege_id` → `res.groups.privilege` → `ir.module.category`, con `UNIQUE (privilege_id, name)`. |
+| `<menuitem>` usa `groups="..."` | No `<field name="group_ids">`. El m2m existe pero es aditivo. |
+| `res.users.groups_id` no existe | Es `group_ids`; el transitivo `all_group_ids` (m2m `res_groups_users_rel`, `uid`/`gid`). |
+| Comentarios XML no admiten `--` | Una cabecera con `-----` tumba la install con `XMLSyntaxError`. |
+| `sale.sale_menu_root` no tiene `group_ids` | Y va `active="False"`: por eso `NAV_MAP` resuelve Ventas por `sale.menu_sale_order`. Su `group_ids = {}` **es nativo**, no un daño. |
+| Gates de los roots | `crm_menu_root {22,24}`, `menu_point_root {54,55}`, `menu_purchase_root {49,50}`, `menu_stock_root {36,37}`, `menu_website_configuration {1}`, `sale_menu_root {}`. |
+
+### Reversión de la contaminación
+
+`DELETE FROM ir_ui_menu_group_rel WHERE gid IN (97..102)` (26 filas) + uninstall/install
+limpio. Los 6 menús raíz quedaron con sus grupos nativos verificados uno a uno.
+
+### Limitaciones conocidas (bugs de Odoo, no de este módulo)
+
+- **BUG-S-040 — CRM y Ventas no se pueden separar.** Ambos menús los gatea
+  `sales_team.group_sale_salesman` (gid 22) y Odoo 19 no declara ningún grupo
+  "CRM user" para `crm.crm_menu_root`. El grupo de Ventas expone también CRM.
+- **BUG-S-041 — Website no se puede ocultar.** `menu_website_configuration` solo lo
+  gatea `base.group_user` y sus submenús no tienen grupo. Coherente con la matriz QA
+  anterior, donde `basic` ya veía Website.
+
+### Archivos
+
+- `security/data.xml` — 6 `res.groups` con `name` + `implied_ids`, `noupdate="1"`
+- `security/menu_restrictions.xml` — **borrado**
+- `__manifest__.py` — `19.0.1.1.0` → `19.0.1.2.0`; `sales_team` a `depends`;
+  fuera `menu_restrictions.xml` de `data`
+- `readme/CHANGELOG.rst`, `specs/Bugs.md`, `specs/Changelog.md`
+
+---
+
 ## Sesión 2026-09-26 — QA runtime v1.1 completa (C13-C18) + trampas Odoo 19
 
 ### Qué se hizo
@@ -75,6 +162,54 @@ cacheado).
 - `BUG-S-022` (panel all-apps no alcanzable en móvil) y `BUG-S-031` (drawer limita los
   submenús a un nivel) siguen abiertos como limitaciones conocidas de v1.1.
 - Baseline de debranding: 3/22 fallos preexistentes, no del módulo.
+
+---
+
+## Sesión 2026-09-26 (2) — BUG-S-030 + BUG-S-029
+
+### Qué se hizo
+
+**S-030 (race de boot del drawer).** `sidebar.js` registra ahora un listener del bus *antes* que
+`_openDrawer`: si el clic del toggle llega antes de que el componente esté montado, en vez de
+perder el evento se marca `state.drawerOpenPending`, y `onMounted` lo consume abriendo el drawer.
+`onWillUnmount` retira ambos listeners. La API del bus no cambia.
+
+**S-029 (credenciales en el repo).** Nuevo `cdp/qa_config.js` centraliza URL y credenciales vía
+`process.env` (`ODOO_URL`, `ODOO_USER`, `ODOO_PASSWORD`, `ODOO_{USER,PASS}_{VENTAS,BASIC}`,
+`ODOO_UID_*`). Los 15 scripts CDP importan de ahí y no queda ninguna URL ni password hardcodeada
+(verificado con grep: sólo aparecen los defaults en `qa_config.js`). La política —los defaults
+apuntan a una BD local desechable, nada aquí debe apuntar a una instancia real— queda documentada
+en el nuevo `cdp/README.md`, que además lista scripts y trampas de Odoo 19.
+
+### Hallazgo colateral: `basic` veía 9 entradas del rail
+
+Al revalidar la matriz, `cdp_matrix.js` falló con "Rail de basic expone entradas sin permiso: CRM,
+Ventas, Ecommerce, POS, Inventario, Productos, Compras". **No era un bug del módulo**: el usuario
+`basic` había derivado y tenía `sales_team.group_sale_salesman` + 4 grupos de app +
+`Restricted Editor`. El rail hacía exactamente lo correcto con esos permisos.
+
+Causa de la deriva: altas de grupo a mano (Ajustes > Usuarios) sobre usuarios de prueba. Se agrega
+**`cdp/seed_users.py`**, idempotente, que deja `ventas` = `base.group_user` + el grupo de ventas y
+`basic` = sólo `base.group_user`, y rehashea los passwords.
+
+**Trampa asociada, documentada:** el acceso a menús de un usuario está cacheado en el proceso del
+servidor (`ir.ui.menu._get_menu_ids_for_user` es `ormcache`) y `seed_users.py` corre en otro
+proceso, así que **sin reiniciar Odoo el servidor sigue sirviendo los menús viejos** y la matriz
+falla aunque los datos ya estén corregidos. Por eso el script y el README insisten en
+`docker restart odoo_sidebar_test` después del seed.
+
+### Verificación
+
+Suite CDP 10/10 en verde tras reiniciar el bundle con el fix S-030 dentro (`cdp_home`,
+`cdp_allapps`, `cdp_smoke`, `cdp_hover`, `cdp_drawer`, `cdp_drawer_nav`, `cdp_layout`,
+`cdp_fullscreen`, `cdp_settings`, `cdp_matrix`) y `node --check` en los 15 scripts.
+
+### Pendientes
+
+- Hoot en browser sigue sin ejecutar (D-34); no es criterio de verde.
+- `BUG-S-022` (apps fuera del rail inalcanzables en móvil) y `BUG-S-031` (submenús de 1 nivel en
+  el drawer) siguen abiertos a decisión del cliente.
+- `BUG-S-032` (accesibilidad) y `BUG-S-033` (logos con recarga plana) siguen abiertos.
 
 ---
 

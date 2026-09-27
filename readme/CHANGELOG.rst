@@ -1,3 +1,21 @@
+.. changelog:: 19.0.1.2.0
+
+    * Feat: un grupo de permisos por módulo nativo (CRM, Ventas, POS, Compras,
+      Inventario, Website). Cada grupo hereda del grupo "User" de su módulo
+      (``implied_ids``), no del "Administrator", asi que el usuario ve el modulo
+      y los submenus restringidos al Administrator le quedan ocultos sin tocar
+      los menus de Odoo (p.ej. POS > Configuration)
+    * Fix: no se cablean los grupos a ``ir.ui.menu.group_ids``. En Odoo 19
+      ``<menuitem>`` declara permisos con el atributo ``groups="..."`` y el m2m
+      ``group_ids`` es aditivo, asi que un ``(4, ref(...))`` sobre un menu
+      nativo solo anade el grupo: no restringe nada y ensucia el editor de menus
+      de todas las apps (BUG-S-035)
+    * Chore: ``sales_team`` anadido a ``depends`` (los grupos de CRM y Ventas
+      heredan de ``sales_team.group_sale_salesman``, que es el grupo con el que
+      Odoo gatea ``crm.crm_menu_root`` y los menus de pedido de venta)
+    * Chore: ``security/data.xml`` con ``noupdate="1"`` para no re-aplicar los
+      grupos en cada upgrade
+
 .. changelog:: 19.0.1.1.0
 
     * Feat: sidebar por entradas (NAV_MAP) con el orden pedido por el cliente
@@ -16,6 +34,9 @@
     * Feat: tests hoot de la resolucion de entradas (`static/tests/nav_entries.test.js`);
       `nav_entries.js` se declara explicito en `web.assets_unit_tests` porque el bundle de
       tests no arrastra los assets de backend
+    * Fix: el primer clic en el toggle del drawer ya no se pierde si ocurre antes
+      de que el componente monte (BUG-S-030); el pedido queda pendiente y se
+      aplica al montar
     * Chore: Contactos, Facturacion, Discuss, Calendario y Ajustes fuera del rail
       (solo panel "Todas las aplicaciones"); Ajustes sigue en el footer del drawer
     * Chore: drawer movil replica las entradas del rail, mitigando BUG-S-022
@@ -23,6 +44,10 @@
     * Chore: `spreadsheet_dashboard` fuera de `depends`; la tarjeta Dashboards del home y la
       entrada del rail se filtran por presencia real del menu
     * Chore: QA runtime v1.1 completa (C13-C18) con 10/10 scripts CDP en verde
+    * Chore: URL y credenciales de los scripts CDP salen de variables de entorno
+      (`cdp/qa_config.js`); se eliminan las credenciales hardcodeadas (BUG-S-029)
+    * Chore: `cdp/seed_users.py` crea/repara los usuarios de la matriz de permisos
+      y `cdp/README.md` documenta variables, trampas de Odoo 19 y scripts
     * Chore: eliminado `views/webclient_templates.xml` (vacio y fuera de `data`)
 
 .. changelog:: 19.0.1.0.3
