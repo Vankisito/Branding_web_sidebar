@@ -60,9 +60,16 @@ Scripts en `cdp/`:
 - `cdp_hover.js` — hover flyout estable por coordenadas reales (C3 / S-014) ✅
 - `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto). ⚠️ BUG-S-020: sin `setViewport` → falsa alarma breakpoint a 800px
 - `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra por coordenadas (C6) ✅
-- `cdp_matrix.js` — matriz manual automatizada: admin/ventas/basic landing + rail, drawer + SwitchCompany + Escape, teclado ✅
-- `cdp_fullscreen.js` — fullscreen action real → sidebar oculta/restaura + navbar core (C9 / S-011a / S-018) ✅
+- `cdp_matrix.js` — matriz manual automatizada: admin/ventas/basic landing + rail, drawer + SwitchCompany + Escape, teclado ✅. Compara el rail contra `cdp/expected_rail.js` (fixture a mano, D-38) y los XMLIDs de `data-xmlids` (BUG-S-044)
+- `cdp_fullscreen.js` — fullscreen action real → sidebar oculta/restaura + navbar core (C9 / S-011a / S-018 / BUG-S-051) ✅
 - `cdp_smoke.js` — ⚠️ BUG-S-020: cuenta `.o_erpico_rail_btn` con `$$` (presencia DOM, no visibilidad) en viewport 800×600 → rail no visible; green no prueba visibilidad
+- `check_menu_leak.js` — diagnóstico del backend, no del sidebar: compara `load_menus` entre usuarios. No es un criterio de verde/rojo del addon, pero avisa si el filtrado de menús deja de distinguir usuarios (BUG-S-046)
+
+**Códigos de salida (2026-09-28, BUG-S-045):** todos los scripts con asserts terminan con
+`process.exitCode = 1` si algún check falló, aunque el reporte en consola se vea verde. Antes
+salían siempre con 0 y un rojo en consola se leía como corrida verde. Comprobado en negativo con
+`ODOO_UID_VENTAS=999 node cdp_matrix.js` → exit 1. En CI: `node cdp/cdp_matrix.js; if
+($LASTEXITCODE -ne 0) { exit 1 }`.
 
 Ejecución:
 ```bash
@@ -208,9 +215,48 @@ Evidencia de C17 (matriz de permisos, logins reales verificados por `get_session
 7. **Assets cacheados en memoria del proceso**: tras cambiar `__manifest__.py` hay que **reiniciar
    el contenedor** de Odoo; `-u` no refresca el manifest cacheado y el bundle se regenera con el
    contenido viejo.
+8. **Los permisos de menú están cacheados en el proceso del servidor**
+   (`ir.ui.menu._get_menu_ids_for_user` es `ormcache`). Si cambias los grupos de un usuario desde
+   otro proceso (`odoo shell`), el servidor sigue sirviendo los menús viejos y la matriz falla
+   con datos ya corregidos. **Reiniciar Odoo** después de correr `cdp/seed_users.py`. Apliqué
+   esta regla tras un falso negativo: `basic` había derivado a tener
+   `sales_team.group_sale_salesman` + 4 grupos de app, veía 9 entradas del rail y el módulo
+   estaba haciendo lo correcto. `cdp/seed_users.py` deja los usuarios en el estado esperado
+   (idempotente) y `cdp/README.md` documenta el procedimiento. Ese mismo seed era también la
+   causa de la "fuga de menús" que `check_menu_leak.js` reportaba (2026-09-28, BUG-S-046).
+9. **Quitar un grupo de un fichero de datos no lo borra de la base.** Odoo deja el registro
+   huérfano y su XMLID apuntando a él, aunque ningún módulo lo declare ya. Al mover los grupos al
+   módulo de roles hubo que migrarlos a mano (`post_init_hook`, BUG-S-050). Lo mismo aplica a
+   `ir.ui.menu` y a cualquier otro dato de un XML.
+10. **Odoo escanea el `addons_path` de un solo nivel.** Un módulo anidado (aquí
+    `roles/erpico_web_sidebar_roles`) no aparece en la lista aunque su directorio esté montado:
+    sin `<addons>/erpico_web_sidebar/roles` en el path, Odoo responde `manifest not found` y se
+    lo salta. Reproducido en QA al mover el módulo dentro del repo.
 
 ### Estado de la BD de QA (`sidebar_test`, entorno local, no afecta al repo)
 
 - Instalados para poder validar: `sale_management` (activa `sale.sale_menu_root`, que nace
   `active="False"`) y `mass_mailing_sms` (2º grupo de Marketing).
-- Usuarios de prueba creados: `ventas` (uid 17) y `basic` (uid 18).
+- Módulos del proyecto: `erpico_web_sidebar` + el subaddon `roles/erpico_web_sidebar_roles` (D-36).
+  Los roles se resuelven por XMLID del módulo de roles, así que `seed_users.py` avisa si no está
+  instalado. Odoo escanea el `addons_path` de un nivel, así que `compose.test.yml` incluye
+  `/mnt/extra-addons/erpico_web_sidebar/roles`.
+- Usuarios de prueba creados: `ventas` (uid 17) y `basic` (uid 18), vía `cdp/seed_users.py`.
+  `ventas` = `Role / User` + `CRM y Ventas ERPICO`; `basic` = sólo `Role / User`.
+- Configuración de los scripts: `cdp/qa_config.js` (env vars, BUG-S-029), documentada en
+  `cdp/README.md`.
+
+### Corrida 2026-09-28 (roles + QA + fullscreen)
+
+Todos verdes en `http://localhost:8071` tras `docker restart`:
+
+| Script | Exit | Nota |
+|---|---|---|
+| `cdp_matrix.js` | 0 | admin 10 / ventas 5 / basic 2 contra `expected_rail.js` |
+| `cdp_fullscreen.js` | 0 | C9: oculta y restaura tras quitar el rAF loop (BUG-S-051) |
+| `cdp_smoke`, `cdp_layout`, `cdp_home`, `cdp_hover`, `cdp_drawer`, `cdp_drawer_nav`, `cdp_settings`, `cdp_allapps`, `cdp_verify_audit`, `cdp_verify_keyboard` | 0 | sin regresiones |
+| `check_menu_leak.js` | 0 | admin 259 / ventas 74 / basic 34 menús: **la fuga que se documentó el 2026-09-26 ya no está**; era el seed, no el filtrado |
+| `cdp_matrix.js` con `ODOO_UID_VENTAS=999` | 1 | verifica que el exit code falla de verdad |
+
+No se ejecutó `cdp_hoot.js`: el runner de `/web/tests` no funciona con Puppeteer en este entorno
+(D-34). Los asserts de `nav_entries.js` siguen sin poder ejecutarse; la cobertura real es CDP.

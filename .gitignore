@@ -2,6 +2,10 @@
 cdp/node_modules/
 node_modules/
 
+# Byte-compiled Python
+__pycache__/
+*.py[cod]
+
 # OS / editor cruft
 Thumbs.db
 Desktop.ini

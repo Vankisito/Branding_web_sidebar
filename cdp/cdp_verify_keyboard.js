@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const BASE = 'http://localhost:8071';
+const { BASE, LOGIN_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 async function waitSel(page, sel, tries = 30) {
     for (let i = 0; i < tries; i++) {
@@ -22,8 +22,8 @@ async function flyoutVisible(page) {
     try {
         await page.goto(BASE + '/web/login', { waitUntil: 'networkidle0', timeout: 30000 });
         await waitSel(page, '#login');
-        await page.type('#login', 'admin');
-        await page.type('#password', 'admin');
+        await page.type('#login', ADMIN_USERNAME);
+        await page.type('#password', ADMIN_PASSWORD);
         await page.click('button.btn-primary[type="submit"]');
         await sleep(6000);
         await page.goto(BASE + '/odoo', { waitUntil: 'networkidle0', timeout: 30000 });
@@ -69,4 +69,5 @@ async function flyoutVisible(page) {
         console.log(errors.length === 0 ? 'OK' : errors.join('\n'));
     } catch (e) { console.log('ERROR: ' + e.message); errors.push(e.message); }
     await browser.close();
+    if (errors.length) process.exitCode = 1;
 })();

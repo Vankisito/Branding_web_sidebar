@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        Roles ERPICO para el sidebar web (módulo hermano de erpico_web_sidebar).
+
+        Por qué un módulo aparte: erpico_web_sidebar sólo depende de `web`, así que
+        en una base sin apps de negocio sigue instalando. Estos roles, en cambio,
+        necesitan los grupos nativos a los que heredan, y por eso viven aquí con
+        sus dependencias explícitas.
+
+        Por qué un `res.groups.privilege` POR grupo: el formulario de usuario de
+        Odoo 19 dibuja cada privilegio como un `selection` y guarda el conjunto
+        completo con `x2ManyCommands.set` sobre `group_ids`
+        (addons/web/.../res_user_group_ids_field.js:73-80 y :253-255). Los
+        grupos de un mismo privilegio son excluyentes entre sí, así que meter los
+        cinco roles en un único privilegio haría que sólo se pudiera activar uno.
+        Con un privilegio por rol, cada fila es un toggle real y aparece en el
+        formulario sin necesidad de modo desarrollador.
+
+        Sin `noupdate`: los grupos declarados fuera de un bloque noupdate se
+        actualizan en cada upgrade, que es lo que hace el core para sus propios
+        grupos (p.ej. point_of_sale/security/point_of_sale_security.xml).
+    -->
+
+    <record id="module_category_erpico" model="ir.module.category">
+        <field name="name">ERPICO</field>
+        <field name="sequence">60</field>
+    </record>
+
+    <!-- Ventas y CRM -->
+    <record id="res_groups_privilege_erpico_ventas" model="res.groups.privilege">
+        <field name="name">Ventas y CRM</field>
+        <field name="sequence">10</field>
+        <field name="category_id" ref="module_category_erpico"/>
+        <field name="description">Acceso de usuario a Ventas (pedidos y cotizaciones) y a la raiz de CRM.</field>
+    </record>
+
+    <record id="group_ventas_erpico" model="res.groups">
+        <field name="name">CRM y Ventas ERPICO</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_erpico_ventas"/>
+        <field name="comment">hereda del grupo User: Own Documents Only de Ventas, que es el grupo que habilita tambien la raiz de CRM (crm.crm_menu_root).</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <!-- Punto de venta -->
+    <record id="res_groups_privilege_erpico_pos" model="res.groups.privilege">
+        <field name="name">Punto de venta</field>
+        <field name="sequence">20</field>
+        <field name="category_id" ref="module_category_erpico"/>
+        <field name="description">Acceso de usuario a la app de Punto de Venta.</field>
+    </record>
+
+    <record id="group_pos_erpico" model="res.groups">
+        <field name="name">POS ERPICO</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_erpico_pos"/>
+        <field name="comment">hereda del grupo User de Punto de Venta.</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+
+    <!-- Inventario -->
+    <record id="res_groups_privilege_erpico_inventario" model="res.groups.privilege">
+        <field name="name">Inventario</field>
+        <field name="sequence">30</field>
+        <field name="category_id" ref="module_category_erpico"/>
+        <field name="description">Acceso de usuario a Inventario.</field>
+    </record>
+
+    <record id="group_inventario_erpico" model="res.groups">
+        <field name="name">Inventario ERPICO</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_erpico_inventario"/>
+        <field name="comment">hereda del grupo User de Inventario, que es el unico punto de corte limpio para productos y ubicaciones.</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <!-- Compras -->
+    <record id="res_groups_privilege_erpico_compras" model="res.groups.privilege">
+        <field name="name">Compras</field>
+        <field name="sequence">40</field>
+        <field name="category_id" ref="module_category_erpico"/>
+        <field name="description">Acceso de usuario a Compras.</field>
+    </record>
+
+    <record id="group_compras_erpico" model="res.groups">
+        <field name="name">Compras ERPICO</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_erpico_compras"/>
+        <field name="comment">hereda del grupo User de Compras.</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('purchase.group_purchase_user'))]"/>
+    </record>
+
+    <!-- Website -->
+    <record id="res_groups_privilege_erpico_website" model="res.groups.privilege">
+        <field name="name">Website</field>
+        <field name="sequence">50</field>
+        <field name="category_id" ref="module_category_erpico"/>
+        <field name="description">Acceso de editor al Website: edita paginas, plantillas QWeb y contenido del sitio.</field>
+    </record>
+
+    <record id="group_website_erpico" model="res.groups">
+        <field name="name">Website ERPICO</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_erpico_website"/>
+        <field name="comment">hereda de Editor and Designer, que es el unico grupo nativo de Website con permisos propios sobre las vistas QWeb del sitio.</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('website.group_website_designer'))]"/>
+    </record>
+
+</odoo>

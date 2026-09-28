@@ -5,6 +5,74 @@
 
 ---
 
+## Sesión 2026-09-28 — Auditoría de la 1.2.0: roles asignables, QA que de verdad falla
+
+### Qué se pidió
+
+1. Que los grupos ERPICO se puedan asignar **sin activar el modo desarrollador**.
+2. Se confirma que `Website ERPICO` puede seguir heredando de `website.group_website_designer`
+   (permisos de editor sobre páginas y QWeb del sitio).
+3. Fusionar los roles de CRM y Ventas: no se pueden separar porque en Odoo 19
+   `crm.crm_menu_root` está gateado por `sales_team.group_sale_salesman` (BUG-S-040).
+4. Arreglar el resto de lo encontrado en la auditoría evitando regresiones.
+
+### Decisiones
+
+- **D-36** roles en el subaddon `roles/erpico_web_sidebar_roles` de este repo; el sidebar queda en
+  `depends: ["web"]`. Hay que pasar `<addons>/erpico_web_sidebar/roles` en el `--addons-path`.
+- **D-37** un `res.groups.privilege` por rol dentro de una categoría `ERPICO`. Sin `privilege_id`
+  el grupo sólo aparece con `odoo.debug`; y con un privilegio compartido los cinco roles serían
+  excluyentes entre sí (el core lo dibuja como `selection` y guarda con `x2ManyCommands.set`).
+  Esto **revierte** la decisión de BUG-S-036 del día anterior, que los había dejado sin categorizar.
+- **D-38** la matriz de permisos compara contra `cdp/expected_rail.js`, escrito a mano.
+- **D-39** el rail se re-resuelve con `MENUS:APP-CHANGED`; el fullscreen sale del evento y se
+  elimina el bucle de `requestAnimationFrame` de BUG-S-034.
+
+### Qué se hizo
+
+- Nuevo subaddon `roles/erpico_web_sidebar_roles` (dentro del repo): categoría `ERPICO`, 5
+  privilegios, 5 grupos. CRM y Ventas quedan en un único `group_ventas_erpico` ("CRM y Ventas
+  ERPICO"). Sin `noupdate`, porque impedía actualizar `implied_ids` en un upgrade (BUG-S-048).
+- `erpico_web_sidebar`: `depends: ["web"]`, `security/data.xml` eliminado, versión 19.0.1.3.0.
+- `sidebar.js`: `_resolveNavigation()` + listener `MENUS:APP-CHANGED`; fuera `drawerOpenPending`
+  y su listener; fuera el rAF loop; nuevo `xmlidsOf(entry)`.
+- `sidebar.xml`: `data-entry` + `data-xmlids` en el rail, `data-entry` en el drawer.
+- `navbar.xml` / `sidebar.scss`: fuera el `o_active` siempre verdadero y su CSS muerto.
+- `cdp/`: 13 scripts con `process.exitCode = 1`; `cdp_matrix.js` reescrito contra la fixture;
+  `check_menu_leak.js` con BD configurable y guard de `uid`; `qa_config.js` exporta `DB_NAME`;
+  `seed_users.py` resuelve los roles por XMLID del módulo nuevo.
+- `compose.test.yml`: el `addons_path` incluye `erpico_web_sidebar/roles` para que Odoo descubra
+  el subaddon (el scan es de un solo nivel).
+- Docs: `readme/USAGE.rst`, `readme/CHANGELOG.rst`, `readme/` del módulo de roles, `cdp/README.md`,
+  `TESTS_COVERAGE.md`, `Bugs.md` (BUG-S-042…051), `Decisiones.md` (D-36…D-39).
+
+### Verificación (en vivo, `http://localhost:8071`)
+
+- `odoo -u erpico_web_sidebar -i erpico_web_sidebar_roles` → exit 0, sin warnings.
+- Hook de migración probado **desinstalando y reinstalando** el módulo de roles: migró y borró
+  los 6 grupos de la 1.2.0, `env.ref("erpico_web_sidebar.group_ventas_erpico")` → `None`,
+  segunda llamada sin efecto (idempotente).
+- `cdp_matrix.js` → 0 (admin 10, ventas 5, basic 2). Con `ODOO_UID_VENTAS=999` → **1**.
+- `cdp_fullscreen.js` C9 → 0 tras quitar el rAF (el fix de BUG-S-051).
+- `cdp_smoke`, `cdp_layout`, `cdp_home`, `cdp_hover`, `cdp_drawer`, `cdp_drawer_nav`,
+  `cdp_settings`, `cdp_allapps`, `cdp_verify_audit`, `cdp_verify_keyboard` → 0.
+- `check_menu_leak.js` → 0. **La "fuga de menús" que se documentó el 2026-09-26 no existe**: era el
+  seed (basic tenía los grupos de todos los roles). Ahora admin 259 / ventas 74 / basic 34.
+- `node --check` en los 18 JS de `cdp/`, XML parseados, `ast.parse` del seed y de los manifests.
+
+### Pendientes
+
+- El subaddon es un módulo Odoo **anidado**: quien lo instale tiene que añadir
+  `<addons>/erpico_web_sidebar/roles` al `--addons-path`. Documentado en `README.rst`,
+  `readme/USAGE.rst` y D-36.
+- `implied_ids` se escribe con `(4, ...)`, que sólo añade. Para *quitar* una herencia hay que pasar
+  a `(6, 0, [...])` o escribir una migración.
+- `cdp_hoot.js` no se puede ejecutar (D-34): los asserts de `nav_entries.js` siguen sin correr.
+- BUG-S-041 sigue abierto por decisión del cliente (la entrada Website es visible para cualquier
+  usuario interno; no hay punto de corte limpio en Odoo 19).
+
+---
+
 ## Sesión 2026-09-27 — Grupos de permisos por módulo (BUG-S-035 → 041)
 
 ### Qué se pidió

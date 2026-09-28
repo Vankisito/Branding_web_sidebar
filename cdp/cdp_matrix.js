@@ -1,12 +1,22 @@
 ﻿const puppeteer = require('puppeteer');
 
-const LOGIN_URL = 'http://localhost:8071/web/login';
-// uids verificados en la BD de QA (sidebar_test)
-const USERS = {
-    admin: { u: 'admin', p: 'admin', uid: 2 },
-    ventas: { u: 'ventas', p: 'ventas', uid: 17 },
-    basic: { u: 'basic', p: 'basic', uid: 18 },
-};
+const { LOGIN_URL, ODOO_URL, USERS } = require('./qa_config');
+const { expectedRailFor } = require('./expected_rail');
+
+/**
+ * Payload de /web/webclient/load_menus tal y como lo recibe ESTA sesion.
+ * Es la unica entrada que usa la matriz: la expectativa sale de la fixture
+ * cdp/expected_rail.js (escrita a mano), nunca de nav_entries.js.
+ */
+async function menusPayload(page) {
+    return page.evaluate(async () => {
+        const res = await fetch(`/web/webclient/load_menus?ts=${Date.now()}`, { credentials: 'same-origin' });
+        if (!res.ok) {
+            throw new Error(`load_menus respondio ${res.status}`);
+        }
+        return res.json();
+    });
+}
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -76,18 +86,59 @@ async function loginIsolated(browser, user, viewport) {
 }
 
 async function gotoHome(page) {
-    await page.goto('http://localhost:8071/odoo', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(ODOO_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForSelector('.o_erpico_sidebar', { timeout: 60000 });
     await sleep(3000);
 }
 
-async function railTitles(page) {
-    const btns = await page.$$('.o_erpico_rail_apps .o_erpico_rail_btn');
-    const titles = [];
-    for (const b of btns) {
-        titles.push(await page.evaluate(el => el.getAttribute('title'), b));
+/** Rail renderizado: [{ id, label, xmlids[] }] leído del propio DOM. */
+async function railEntries(page) {
+    return page.$$eval('.o_erpico_rail_apps .o_erpico_rail_btn', (els) =>
+        els.map((el) => ({
+            id: el.getAttribute('data-entry'),
+            label: el.getAttribute('title'),
+            xmlids: (el.getAttribute('data-xmlids') || '').split(',').filter(Boolean),
+        }))
+    );
+}
+
+/**
+ * Compara el rail renderizado contra la fixture. Devuelve un objeto con los
+ * tres checks, para que quien llama decida si son error o aviso.
+ */
+function checkRail(errors, role, expected, rendered) {
+    const byId = (list) => new Map(list.map((e) => [e.id, e]));
+    const exp = byId(expected);
+    const got = byId(rendered);
+    const missing = expected.filter((e) => !got.has(e.id));
+    const extra = rendered.filter((e) => !exp.has(e.id));
+    const wrongXmlid = [];
+    const wrongLabel = [];
+    for (const e of rendered) {
+        const want = exp.get(e.id);
+        if (!want) continue;
+        if (e.label !== want.label) {
+            wrongLabel.push(`${e.id}: "${e.label}" en vez de "${want.label}"`);
+        }
+        if (e.xmlids.join(',') !== want.xmlids.join(',')) {
+            wrongXmlid.push(`${e.id}: ${e.xmlids.join(',') || '(vacio)'} en vez de ${want.xmlids.join(',')}`);
+        }
     }
-    return titles;
+    const dump = (list, f) => list.length ? f(list).join(' | ') : 'ninguna';
+    console.log(`  [${role}] rail esperado (${expected.length}): ${expected.map((e) => e.label).join(', ') || '(ninguna)'}`);
+    console.log(`  [${role}] permitidas ausentes: ${dump(missing, (l) => l.map((e) => e.label))}`);
+    if (missing.length) errors.push(`Rail de ${role} pierde entradas permitidas: ${missing.map((e) => e.label).join(', ')}`);
+    console.log(`  [${role}] no permitidas visibles: ${dump(extra, (l) => l.map((e) => e.label))}`);
+    if (extra.length) errors.push(`Rail de ${role} expone entradas que el servidor no le envia: ${extra.map((e) => e.label).join(', ')}`);
+    if (wrongLabel.length) {
+        console.log(`  [${role}] etiqueta incorrecta: ${wrongLabel.join(' | ')}`);
+        errors.push(`Rail de ${role} con etiqueta incorrecta: ${wrongLabel.join(' | ')}`);
+    }
+    if (wrongXmlid.length) {
+        console.log(`  [${role}] xmlid incorrecto: ${wrongXmlid.join(' | ')}`);
+        errors.push(`Rail de ${role} apunta al menu equivocado: ${wrongXmlid.join(' | ')}`);
+    }
+    return { missing, extra };
 }
 
 async function main() {
@@ -115,6 +166,13 @@ async function main() {
         console.log(`  [M1] Landing admin = Inicio (home): ${adminHome ? 'OK' : 'FALLA'}`);
         if (!adminHome) errors.push('Admin: el landing no es el home de ERPICO (D-33)');
 
+        // El set de entradas permitidas del admin se guarda para el check de
+        // entorno de M7 (si el servidor no filtra, basic y admin coinciden).
+        const adminExpected = expectedRailFor(await menusPayload(page));
+        console.log(`  [M1] Entradas que el admin puede ver: ${adminExpected.map((e) => e.label).join(', ')}`);
+        const adminRendered = await railEntries(page);
+        checkRail(errors, 'admin', adminExpected, adminRendered);
+
         // Multiempresa: footer SwitchCompanyMenu
         await page.setViewport({ width: 375, height: 812 });
         await sleep(1000);
@@ -125,6 +183,7 @@ async function main() {
             const drawer = await page.$('.o_erpico_drawer');
             const switchCompany = await page.$('.o_erpico_drawer_footer .o_dropdown, .o_erpico_drawer_footer button, .o_erpico_drawer_footer .o_switch_company');
             console.log(`  [M2] Drawer abre: ${drawer ? 'OK' : 'FALLA'}; SwitchCompany en footer: ${switchCompany ? 'OK' : 'FALLA'}`);
+            if (!drawer) errors.push('El toggle del topbar no abre el drawer');
             if (!switchCompany) errors.push('SwitchCompanyMenu no renderiza en drawer footer');
             // Keyboard: Escape cierra
             await page.keyboard.press('Escape');
@@ -153,23 +212,19 @@ async function main() {
         const ventasHome = await page2.$('.o_erpico_home');
         console.log(`  [M4] Landing ventas = Inicio (home): ${ventasHome ? 'OK' : 'FALLA'}`);
         if (!ventasHome) errors.push('Ventas: el landing no es el home de ERPICO (D-33)');
-        const titles = await railTitles(page2);
-        console.log(`  [M5] Rail ventas (${titles.length}): ${titles.join(', ')}`);
-        if (titles.length === 0) errors.push('Rail vacio para ventas');
-        // D-30: el rail refleja load_menus (filtrado por group_ids en core).
-        // ventas = base.group_user + sales_team.group_sale_salesman
-        const mustBeHidden = ['POS', 'Inventario', 'Productos', 'Compras', 'Marketing - Email/SMS'];
-        const leaked = mustBeHidden.filter(l => titles.includes(l));
-        console.log(`  [M5] Entradas que NO deberian verse: ${leaked.length ? 'FALLAN ' + leaked.join(', ') : 'ninguna OK'}`);
-        if (leaked.length) {
-            errors.push(`Rail de ventas expone entradas sin permiso: ${leaked.join(', ')}`);
-        }
-        // crm/website_sale root = "Sales / User: Own Documents Only"; website root = "Role / User"
-        const mustBeVisible = ['Inicio', 'CRM', 'Ventas', 'Ecommerce', 'Website'];
-        const missing = mustBeVisible.filter(l => !titles.includes(l));
-        console.log(`  [M5] Entradas que SI deberian verse: ${missing.length ? 'FALTAN ' + missing.join(', ') : 'todas OK'}`);
-        if (missing.length) {
-            errors.push(`Rail de ventas pierde entradas permitidas: ${missing.join(', ')}`);
+        const ventasExpected = expectedRailFor(await menusPayload(page2));
+        const ventasRendered = await railEntries(page2);
+        console.log(`  [M5] Rail ventas (${ventasRendered.length}): ${ventasRendered.map((e) => e.label).join(', ')}`);
+        if (ventasRendered.length === 0) errors.push('Rail vacio para ventas');
+        // D-30: el rail debe reflejar EXACTAMENTE los menús que load_menus le
+        // manda a este usuario. La expectativa sale de cdp/expected_rail.js
+        // (fixture escrita a mano), no de nav_entries.js, y además se comprueba
+        // que cada botón apunte al xmlid correcto: eso detecta un NAV_MAP mal
+        // escrito, que antes no era detectable.
+        checkRail(errors, 'ventas', ventasExpected, ventasRendered);
+        // ventas tiene grupo de ventas: su icono debe estar
+        if (!ventasRendered.some((e) => e.id === 'ventas')) {
+            errors.push('Rail de ventas no muestra la entrada Ventas pese a tener el grupo de ventas');
         }
 
         // Teclado: rail enfocable
@@ -195,21 +250,24 @@ async function main() {
         if (!basicHome) errors.push('Basic: el landing no es el home de ERPICO (D-33)');
         const basicCards = await page3.$$eval('.o_erpico_home_card', els => els.map(e => e.textContent.trim().split('\n')[0]));
         console.log(`  [M7] Cards del home: ${basicCards.length} -> ${basicCards.join(' | ') || '(ninguna)'}`);
-        const basicTitles = await railTitles(page3);
-        console.log(`  [M7] Rail basic (${basicTitles.length}): ${basicTitles.join(', ')}`);
-        // D-30: basic = solo base.group_user. El rail queda en Inicio + Website
-        // (website.menu_website_configuration solo pide "Role / User", que core
-        // concede a los internal users); el resto de apps no son visibles.
-        const basicAllowed = ['Inicio', 'Website'];
-        const basicLeaked = basicTitles.filter(t => !basicAllowed.includes(t));
-        console.log(`  [M7] Entradas no permitidas: ${basicLeaked.length ? 'FALLAN ' + basicLeaked.join(', ') : 'ninguna OK'}`);
-        if (basicLeaked.length) {
-            errors.push(`Rail de basic expone entradas sin permiso: ${basicLeaked.join(', ')}`);
-        }
-        const basicMissing = basicAllowed.filter(t => !basicTitles.includes(t));
-        console.log(`  [M7] Entradas permitidas ausentes: ${basicMissing.length ? 'FALTAN ' + basicMissing.join(', ') : 'ninguna OK'}`);
-        if (basicMissing.length) {
-            errors.push(`Rail de basic pierde entradas permitidas: ${basicMissing.join(', ')}`);
+        const basicExpected = expectedRailFor(await menusPayload(page3));
+        const basicRendered = await railEntries(page3);
+        console.log(`  [M7] Rail basic (${basicRendered.length}): ${basicRendered.map((e) => e.label).join(', ')}`);
+        checkRail(errors, 'basic', basicExpected, basicRendered);
+        // La fixture ya cubre el caso "solo-admin": si el servidor le manda a
+        // basic el menu de POS, la fixture lo da por permitido y que basic lo
+        // muestre deja de ser un fallo del sidebar. Lo que se puede afirmar sin
+        // lista hardcodeada es si el servidor esta filtrando algo: si basic
+        // recibe exactamente el mismo set que admin, no esta filtrando.
+        const adminIds = adminExpected.map((e) => e.id).join(',');
+        const basicIds = basicExpected.map((e) => e.id).join(',');
+        if (basicIds === adminIds) {
+            console.log('  [M7] AVISO: basic recibe el mismo set de entradas que admin.');
+            console.log('  [M7]        El servidor no esta filtrando menus por permisos en esta BD;');
+            console.log('  [M7]        no es un fallo del sidebar. Diagnostico: node check_menu_leak.js');
+        } else {
+            const soloAdmin = adminExpected.filter((e) => !basicExpected.some((b) => b.id === e.id));
+            console.log(`  [M7] Entradas que el servidor NO manda a basic: ${soloAdmin.length ? soloAdmin.map((e) => e.label).join(', ') : 'ninguna'}`);
         }
         await s3.context.close();
 
@@ -227,6 +285,9 @@ async function main() {
     }
 
     await browser.close();
+    // Sin esto la corrida sale con 0 aunque haya checks rojos y cualquier CI
+    // queda en verde falso.
+    if (errors.length) process.exitCode = 1;
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

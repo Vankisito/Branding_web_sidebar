@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 
-const BASE = 'http://localhost:8071';
+const { BASE, LOGIN_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function waitUp(page) {
@@ -27,8 +27,8 @@ async function main() {
         if (!(await waitUp(page))) { console.log('❌ Stack no levanta'); await browser.close(); return; }
 
         // Login
-        await page.type('#login', 'admin');
-        await page.type('#password', 'admin');
+        await page.type('#login', ADMIN_USERNAME);
+        await page.type('#password', ADMIN_PASSWORD);
         await page.click('button.btn-primary[type="submit"]');
         await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
         await sleep(5000);
@@ -85,5 +85,6 @@ async function main() {
         console.log('❌ ' + e.message);
     }
     await browser.close();
+    if (errors.length) process.exitCode = 1;
 }
 main();

@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 
-const BASE = 'http://localhost:8071';
+const { BASE, LOGIN_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function waitSel(page, sel, tries = 15) {
@@ -26,8 +26,8 @@ async function main() {
         console.log('[L1] login page...');
         await page.goto(BASE + '/web/login', { waitUntil: 'networkidle0', timeout: 30000 });
         if (!(await waitSel(page, '#login'))) throw new Error('login form no encontrado');
-        await page.type('#login', 'admin');
-        await page.type('#password', 'admin');
+        await page.type('#login', ADMIN_USERNAME);
+        await page.type('#password', ADMIN_PASSWORD);
         await page.click('button.btn-primary[type="submit"]');
         await sleep(6000);
         console.log('[L2] post-login url=' + page.url());
@@ -96,6 +96,9 @@ async function main() {
         console.log('ERROR: ' + e.message);
     }
     await browser.close();
+    // Un check fallado tiene que salir con codigo 1: si no, la corrida se ve
+    // verde en consola y cualquier CI queda en verde falso.
+    if (errors.length) process.exitCode = 1;
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

@@ -1,8 +1,6 @@
 const puppeteer = require('puppeteer');
 
-const LOGIN_URL = 'http://localhost:8071/web/login';
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin';
+const { LOGIN_URL, ODOO_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -40,7 +38,7 @@ async function main() {
         await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
         await sleep(3000);
 
-        await page.goto('http://localhost:8071/odoo', { waitUntil: 'networkidle0', timeout: 30000 });
+        await page.goto(ODOO_URL, { waitUntil: 'networkidle0', timeout: 30000 });
         await sleep(5000);
 
         await page.waitForSelector('.o_erpico_rail_btn', { timeout: 15000 });
@@ -104,6 +102,9 @@ async function main() {
     }
 
     await browser.close();
+    // Un check fallado tiene que salir con codigo 1: si no, la corrida se ve
+    // verde en consola y cualquier CI queda en verde falso.
+    if (errors.length) process.exitCode = 1;
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

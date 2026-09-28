@@ -27,6 +27,8 @@
                             type="button"
                             class="o_erpico_rail_btn"
                             t-att-class="{ 'o_active': this.isEntryActive(entry) }"
+                            t-att-data-entry="entry.id"
+                            t-att-data-xmlids="xmlidsOf(entry)"
                             t-att-title="entry.label"
                             t-att-aria-label="entry.label"
                             t-on-mouseenter="() => this.hoverEntry(entry)"
@@ -153,6 +155,7 @@
                                 type="button"
                                 class="o_erpico_drawer_app_btn"
                                 t-att-class="{ 'o_active': this.isEntryActive(entry) }"
+                                t-att-data-entry="entry.id"
                                 t-on-click="() => this.selectEntry(entry)"
                             >
                                 <t t-if="entry.icon.kind === 'img'">

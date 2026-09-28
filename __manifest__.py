@@ -1,24 +1,19 @@
 {
     "name": "ERPICO Web Sidebar",
     "summary": "Tiendanube-style sidebar navigation, home and minimal topbar for Odoo 19",
-    "version": "19.0.1.2.0",
+    "version": "19.0.1.3.0",
     "license": "LGPL-3",
     "author": "Habitat Digital",
     "website": "https://github.com/Vankisito/Branding_web_sidebar",
     "category": "Productivity",
+    # Unica dependencia: el rail se filtra por permisos con menuService.getAll(),
+    # asi que en una base sin apps de negocio instala y simplemente no muestra
+    # entradas. Los roles ERPICO viven en el subaddon roles/erpico_web_sidebar_roles
+    # de este mismo repo, que si depende de los modulos nativos.
     "depends": [
         "web",
-        "sale",
-        "sales_team",
-        "purchase",
-        "stock",
-        "point_of_sale",
-        "website",
-        "website_sale",
-        "crm",
     ],
     "data": [
-        "security/data.xml",
         "views/home.xml",
     ],
     "assets": {

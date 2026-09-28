@@ -380,3 +380,107 @@ sesión anterior sobrevive. Sin esto la matriz daba **falsos verdes** (10 entrad
 usuario sin POS). Nota de entorno: los usuarios de prueba se crean con
 `_set_encrypted_password` + `env.cr.commit()` porque `odoo shell` hace rollback al salir y
 `password`/`new_password` no hashean nada.
+
+---
+
+## D-36 — Los roles van a un subaddon del repo; el sidebar depende sólo de `web`
+
+**Fecha:** 2026-09-28 (revisa D-17 y la 1.2.0 de `readme/CHANGELOG.rst`)
+
+**Decisión:** `erpico_web_sidebar` queda con `depends: ["web"]` y sin `security/data.xml`. Los
+grupos por aplicación se declaran en `erpico_web_sidebar_roles`, un **subaddon dentro de este
+repositorio** (`roles/erpico_web_sidebar_roles/`) que sí depende de `sale`, `sales_team`,
+`purchase`, `stock`, `point_of_sale` y `website`.
+
+**Por qué:** el rail filtra por permisos con `menuService.getAll()` (D-30), así que no necesita
+ninguna app de negocio para funcionar: en una base sin CRM ni POS debe instalar y simplemente
+mostrar menos entradas. Antes, instalar el sidebar arrastraba cinco módulos pesados, y en una base
+sin ellos la instalación era imposible (BUG-S-049). Además, un módulo que pinta navegación no
+debería decidir los permisos de negocio.
+
+**Consecuencias:** el módulo de roles es **opcional**; sin él, el sidebar funciona y no hay roles
+que asignar. Los XMLID cambian de módulo (ver BUG-S-050 y el `post_init_hook` del módulo de
+roles, que migra los usuarios y borra los grupos antiguos). Los grupos se resuelven por
+`erpico_web_sidebar_roles.group_*_erpico` en `cdp/seed_users.py`, nunca por nombre.
+
+**Dónde vive:** dentro del repo, en `roles/erpico_web_sidebar_roles/`, para que el cliente reciba
+los dos módulos en el mismo clone. Odoo escanea el `addons_path` **de un solo nivel**, así que un
+módulo anidado no se encuentra solo: hay que pasarle también `<addons>/erpico_web_sidebar/roles`
+en el `--addons-path` (ver `README.rst`). Es un compromiso consciente — la alternativa (dos
+repos) hacía que un cambio de permisos y su módulo vivieran en sitios distintos.
+
+---
+
+## D-37 — Un `res.groups.privilege` por rol, no un privilegio compartido
+
+**Fecha:** 2026-09-28 (revierte la decisión de BUG-S-036 del 2026-09-27)
+
+**Decisión:** los cinco roles viven en una categoría propia `ERPICO` y cada uno tiene **su propio**
+`res.groups.privilege`.
+
+**Por qué:** dos razones, y la segunda es la que decide:
+
+1. Sin `privilege_id`, un grupo no aparece en el formulario de usuario salvo con `odoo.debug`
+   activo (pestaña *Extra Rights*). El cliente pidió que cualquier administrador de Ajustes
+   pudiera activar los roles en modo normal.
+2. El formulario de Odoo 19 dibuja **cada privilegio como un `selection`** y guarda el conjunto
+   completo con `x2ManyCommands.set` sobre `group_ids`
+   (`addons/web/static/src/webclient/res_user_group_ids_field/res_user_group_ids_field.js:73-80` y
+   `:237-255`). Los grupos de un mismo privilegio son **excluyentes entre sí**, y el desplegable
+   muestra el último privilegio asignado. Con un único privilegio "ERPICO" para los cinco roles,
+   asignar Ventas desasignaría POS, Inventario, Compras y Website.
+
+**Alternativas descartadas:** (a) reutilizar el privilegio nativo de cada módulo —el rol quedaría
+como una opción más dentro de *User*/*Administrator* de ese mismo desplegable, no como un rol
+propio; (b) filtrar en el JS con `env.isSuperUser`/`hasGroup` —el sidebar recibe lo que el core le
+envía y duplicar el filtrado de menús del core sería una segunda fuente de verdad (mismo argumento
+que descartó BUG-S-040 opción (a)).
+
+**Consecuencias:** los roles se pueden activar en cualquier combinación. La firma visible de un
+rol es un checkbox con su etiqueta, no una opción de un desplegable.
+
+---
+
+## D-38 — La matriz de permisos compara contra una fixture escrita a mano
+
+**Fecha:** 2026-09-28
+
+**Decisión:** `cdp/expected_rail.js` es una copia **deliberadamente redundante** de las entradas
+esperadas (id, etiqueta visible y XMLIDs), escrita a mano y no generada desde `nav_entries.js`. El
+rail expone `data-entry` y `data-xmlids` para que el test pueda leerlas del DOM.
+
+**Por qué:** antes `cdp_matrix.js` comparaba las entradas renderizadas contra `NAV_MAP`, que es la
+misma constante que usa el componente: el test sólo podía detectar que el DOM cuadraba con el
+source, nunca que el server mandara de más. Un test que se compara a sí mismo es peor que no
+tener test, porque da confianza falsa (BUG-S-044).
+
+**Consecuencias:** si se toca `NAV_MAP`, hay que tocar `expected_rail.js` en el mismo commit, o
+la matriz falla a propósito. Es un coste aceptado a cambio de que el fallo signifique algo.
+
+---
+
+## D-39 — El rail se re-resuelve con `MENUS:APP-CHANGED`; el fullscreen se deriva del evento
+
+**Fecha:** 2026-09-28 (afecta al fix de BUG-S-034)
+
+**Decisión:** dos cambios en `sidebar.js`:
+
+1. `resolveEntries()` / `getApps()` se extraen a `_resolveNavigation()`, que además se llama desde
+   un listener de `MENUS:APP-CHANGED` (además de `onWillStart`).
+2. El estado de fullscreen se calcula con `mode === "fullscreen"` a partir de
+   `ACTION_MANAGER:UI-UPDATED`, y se elimina el bucle de `requestAnimationFrame` que se había
+   añadido en BUG-S-034.
+
+**Por qué (1):** `menu_service.js` arranca desde `localStorage` y reconcilia con el servidor
+después; `menuService.reload()` también dispara ese evento. El core re-renderiza la topbar ahí, y
+el rail no, así que podía quedarse con los menús de la sesión anterior (BUG-S-043).
+
+**Por qué (2):** `webclient.state.fullscreen` **sólo** se escribe en el `useBus(ACTION_MANAGER:UI-UPDATED)`
+del propio core (`webclient.js:52-55`), o sea en el mismo evento que el componente ya escuchaba: el
+bucle de `requestAnimationFrame` no aportaba información nueva, sólo coste. Y leer el estado del
+core obligaba a confiar en el orden de los listeners del bus; derivarlo del `detail` del evento no
+depende de él. Verificado con `cdp_fullscreen.js` C9 (oculta y restaura).
+
+**Consecuencias:** `_resolveNavigation()` es idempotente y se puede llamar en cualquier momento; si
+el flyout estaba abierto sobre una entrada que ya no resuelve, se cierra. Menos código y menos
+superficie que un bucle de animación permanente.

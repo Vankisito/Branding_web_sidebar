@@ -135,12 +135,6 @@ $erpico-allapps-w: 360px;
     cursor: pointer;
     border-radius: $erpico-radius;
 
-    &.o_active {
-        color: $erpico-horizon;
-        background: $erpico-horizon-tint;
-        font-weight: 700;
-    }
-
     &:hover,
     &:focus-visible {
         background: $erpico-horizon-tint;

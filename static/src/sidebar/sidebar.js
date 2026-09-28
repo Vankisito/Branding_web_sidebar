@@ -40,27 +40,25 @@ export class Sidebar extends Component {
         this._onKeyDown = this._onKeyDown.bind(this);
         this._openDrawer = this._openDrawer.bind(this);
         this._onUIUpdated = this._onUIUpdated.bind(this);
-        this._rafId = null;
+        this._onMenusChanged = this._onMenusChanged.bind(this);
 
         onWillStart(() => {
-            // D-30: el índice se construye sobre getAll() porque getMenu() sólo
-            // acepta id numérico. Los menús ausentes = sin permiso o módulo no
-            // instalado → la entrada no se renderiza.
-            const index = buildMenuIndex(this.menuService);
-            this._menuIndex = index;
-            this._appIcons = buildAppIcons();
-            this._appIconById = new Map();
-            for (const app of this.menuService.getApps()) {
-                this._appIconById.set(app.id, this._iconFor(app));
-            }
-            this.state.entries = resolveEntries(this.menuService, index);
-            this.state.otherApps = this.menuService.getApps();
-            this.state.activeAppId = this._currentAppId();
+            this._resolveNavigation();
             this.state.ready = true;
         });
 
+        // Los listeners se registran en setup(), es decir durante la
+        // construcción: setear `state.drawerOpen` ahí es válido aunque el
+        // componente todavía no esté montado, así que no hace falta ningún
+        // estado "pending" para el primer clic.
         this.env.bus.addEventListener("erpico:open-drawer", this._openDrawer);
         this.env.bus.addEventListener("ACTION_MANAGER:UI-UPDATED", this._onUIUpdated);
+        // MENUS:APP-CHANGED: el servicio de menús reemplaza su payload cuando
+        // refresca desde el servidor (arranca desde localStorage en menu_service.js
+        // y lo reconcilia después) y también en menuService.reload(). Core
+        // re-renderiza la topbar en ese evento; el rail tiene que rehacer lo
+        // mismo o queda mostrando los menús de la sesión anterior.
+        this.env.bus.addEventListener("MENUS:APP-CHANGED", this._onMenusChanged);
         this._clearHoverTimer = null;
         onMounted(() => {
             window.addEventListener("keydown", this._onKeyDown, true);
@@ -69,10 +67,38 @@ export class Sidebar extends Component {
         onWillUnmount(() => {
             this.env.bus.removeEventListener("erpico:open-drawer", this._openDrawer);
             this.env.bus.removeEventListener("ACTION_MANAGER:UI-UPDATED", this._onUIUpdated);
+            this.env.bus.removeEventListener("MENUS:APP-CHANGED", this._onMenusChanged);
             window.removeEventListener("keydown", this._onKeyDown, true);
             if (this._clearHoverTimer) clearTimeout(this._clearHoverTimer);
-            if (this._rafId) cancelAnimationFrame(this._rafId);
         });
+    }
+
+    /**
+     * Re-resuelve el rail y el panel de apps contra los menús que el servicio
+     * tiene cargados ahora. Es idempotente: se llama al arrancar y cada vez que
+     * el servicio de menús reemplaza su payload.
+     */
+    _resolveNavigation() {
+        // D-30: el índice se construye sobre getAll() porque getMenu() sólo
+        // acepta id numérico. Los menús ausentes = sin permiso o módulo no
+        // instalado → la entrada no se renderiza.
+        this._menuIndex = buildMenuIndex(this.menuService);
+        this._appIcons = buildAppIcons();
+        this._appIconById = new Map();
+        for (const app of this.menuService.getApps()) {
+            this._appIconById.set(app.id, this._iconFor(app));
+        }
+        this.state.entries = resolveEntries(this.menuService, this._menuIndex);
+        this.state.otherApps = this.menuService.getApps();
+        this.state.activeAppId = this._currentAppId();
+        // El flyout puede estar mostrando una entrada que ya no es resoluble.
+        if (this.state.flyoutEntry && !this.state.entries.some((e) => e.id === this.state.flyoutEntry.id)) {
+            this.state.flyoutEntry = null;
+        }
+    }
+
+    _onMenusChanged() {
+        this._resolveNavigation();
     }
 
     _iconFor(app) {
@@ -99,29 +125,37 @@ export class Sidebar extends Component {
         return entry.appIds.includes(this.state.activeAppId);
     }
 
+    /**
+     * XMLID de cada sección resuelta de una entrada. Se expone en el DOM
+     * (data-xmlids) para que la matriz QA pueda comprobar que el rail apunta al
+     * menú que corresponde y no sólo que la etiqueta esté bien.
+     */
+    xmlidsOf(entry) {
+        return entry.sections.map((section) => section.menu.xmlid).join(",");
+    }
+
+    /**
+     * Estado de fullscreen al montar. El WebClient arranca siempre fuera de
+     * fullscreen, pero se lee una vez por si acaso (patrón de BUG-S-034).
+     * No hace falta ningún bucle de sincronización: ver _onUIUpdated.
+     */
     _syncFullscreen() {
-        if (!this.webclient) return;
         if (this.webclient?.state?.fullscreen !== undefined) {
-            const isFullscreen = !!this.webclient.state.fullscreen;
-            if (this.state.fullscreenHidden !== isFullscreen) {
-                this.state.fullscreenHidden = isFullscreen;
-            }
+            this.state.fullscreenHidden = !!this.webclient.state.fullscreen;
         }
-        this._rafId = requestAnimationFrame(() => this._syncFullscreen());
     }
 
     _onUIUpdated(evt) {
         if (!this.state) return;
-        // Fuente de verdad: webclient.state.fullscreen sincroniza con el
-        // WebClient core, evitando que el estado stale con target="new"
-        // o al cerrar una acción fullscreen desde el mismo módulo.
-        // Fallback: usar el evento ACTION_MANAGER:UI-UPDATED si webclient no existe.
-        if (this.webclient?.state?.fullscreen !== undefined) {
-            this.state.fullscreenHidden = !!this.webclient.state.fullscreen;
-        } else {
-            const mode = evt && evt.detail;
-            this.state.fullscreenHidden = mode === "fullscreen";
-        }
+        // El estado se deriva del propio evento, no de `webclient.state`, para
+        // no depender del orden de listeners (el core muta ese state en su
+        // propio handler del mismo evento). El bucle de requestAnimationFrame
+        // que se usó para BUG-S-034 no hacía falta: `webclient.state.fullscreen`
+        // sólo se escribe desde este mismo evento, así que esperarlo a él es
+        // exactamente igual de inmediato. Con `mode === "new"` la acción ya no
+        // es fullscreen, aunque el core mantenga su state previo.
+        const mode = evt && evt.detail;
+        this.state.fullscreenHidden = mode === "fullscreen";
         // Highlight de la entrada activa tras cualquier navegación
         this.state.activeAppId = this._currentAppId();
     }

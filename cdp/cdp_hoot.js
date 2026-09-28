@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const BASE = 'http://localhost:8071';
+const { BASE, LOGIN_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 
 async function main() {
     console.log('=== Hoot: tests JS de erpico_web_sidebar ===');
@@ -22,8 +22,8 @@ async function main() {
         await page.waitForSelector('button.btn-primary[type="submit"]', { visible: true, timeout: 15000 });
         await page.waitForFunction(() => !!window.odoo, { timeout: 30000 }).catch(() => {});
         await sleep(800);
-        await page.type('#login', 'admin');
-        await page.type('#password', 'admin');
+        await page.type('#login', ADMIN_USERNAME);
+        await page.type('#password', ADMIN_PASSWORD);
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }),
             page.click('button.btn-primary[type="submit"]'),
@@ -81,6 +81,9 @@ async function main() {
             console.log(`  errores JS de pagina: ${errors.length}`);
             errors.forEach(e => console.log(`    - ${e}`));
         }
+        // Un test fallado (o un error JS en pagina) tiene que salir con codigo 1:
+        // si no, la corrida se ve verde en consola y cualquier CI queda en falso.
+        if (!ok || errors.length) process.exitCode = 1;
     } catch (e) {
         console.log(`ERROR: ${e.message}`);
         process.exitCode = 1;

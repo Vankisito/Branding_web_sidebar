@@ -1,10 +1,7 @@
 const puppeteer = require('puppeteer');
 
 // D-33 — Home de ERPICO: landing real + 2 cards (Dashboards, CRM).
-const LOGIN_URL = 'http://localhost:8071/web/login';
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin';
-const ODOO_URL = 'http://localhost:8071/odoo';
+const { LOGIN_URL, ODOO_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -104,6 +101,9 @@ async function main() {
     }
 
     await browser.close();
+    // Un check fallado tiene que salir con codigo 1: si no, la corrida se ve
+    // verde en consola y cualquier CI queda en verde falso.
+    if (errors.length) process.exitCode = 1;
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

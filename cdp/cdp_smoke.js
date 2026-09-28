@@ -1,15 +1,18 @@
 const puppeteer = require('puppeteer');
 
-const LOGIN_URL = 'http://localhost:8071/web/login';
-const APP_URL = 'http://localhost:8071/odoo';
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin';
+const {
+    BASE,
+    LOGIN_URL,
+    ODOO_URL: APP_URL,
+    ADMIN_USERNAME,
+    ADMIN_PASSWORD,
+} = require('./qa_config');
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function main() {
     console.log('=== CDP Smoke Test (Fase 5) ===');
-    console.log('Target: http://localhost:8071');
+    console.log(`Target: ${BASE}`);
     console.log('');
 
     const browser = await puppeteer.launch({
@@ -95,6 +98,9 @@ async function main() {
     }
 
     await browser.close();
+    // Un check fallado tiene que salir con codigo 1: si no, la corrida se ve
+    // verde en consola y cualquier CI queda en verde falso.
+    if (errors.length) process.exitCode = 1;
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

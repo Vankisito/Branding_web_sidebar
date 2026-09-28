@@ -1,15 +1,16 @@
 const puppeteer = require('puppeteer');
+const { LOGIN_URL, ODOO_URL, ADMIN_USERNAME, ADMIN_PASSWORD } = require('./qa_config');
 
 (async () => {
     const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.setViewport({width: 1024, height: 768});
-    await page.goto('http://localhost:8071/web/login', {waitUntil: 'networkidle0', timeout: 30000});
-    await page.type('#login', 'admin');
-    await page.type('#password', 'admin');
+    await page.goto(LOGIN_URL, {waitUntil: 'networkidle0', timeout: 30000});
+    await page.type('#login', ADMIN_USERNAME);
+    await page.type('#password', ADMIN_PASSWORD);
     await page.click('button.btn-primary[type="submit"]');
     await new Promise(r => setTimeout(r, 5000));
-    await page.goto('http://localhost:8071/odoo', {waitUntil: 'networkidle0', timeout: 30000});
+    await page.goto(ODOO_URL, {waitUntil: 'networkidle0', timeout: 30000});
     await new Promise(r => setTimeout(r, 5000));
     await page.mouse.move(0, 0);
     await new Promise(r => setTimeout(r, 500));

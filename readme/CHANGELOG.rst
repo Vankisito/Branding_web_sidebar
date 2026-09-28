@@ -1,3 +1,36 @@
+.. changelog:: 19.0.1.3.0
+
+    * Feat: los grupos de permisos pasan al subaddon ``erpico_web_sidebar_roles``
+      (``roles/erpico_web_sidebar_roles/`` dentro del repo, opcional, con sus propias
+      dependencias sobre ``sale``/``purchase``/``stock``/``point_of_sale``/``website``).
+      ``erpico_web_sidebar`` queda dependiendo solo de ``web`` y ya no se puede
+      instalar en una base sin las apps destino. Al ser un modulo anidado, hay que
+      anadir ``<addons>/erpico_web_sidebar/roles`` al ``--addons-path``
+    * Feat: los grupos "… ERPICO" son asignables **sin modo desarrollador**. Cada rol
+      tiene su propio ``res.groups.privilege`` dentro de una categoria "ERPICO": el
+      formulario de usuario dibuja un privilegio como *selection*, asi que con un
+      unico privilegio compartido solo se podria activar un rol a la vez
+    * Feat: los grupos de CRM y Ventas se fusionan en ``group_ventas_erpico``
+      ("CRM y Ventas ERPICO"), que mantiene el nombre visible y ahora implica
+      ``sales_team.group_sale_salesman`` (el grupo con el que Odoo 19 gatea
+      ``crm.crm_menu_root``). ``group_crm_erpico`` desaparece
+    * Feat: el rail y el drawer exponen ``data-entry`` y ``data-xmlids`` para que la
+      matriz de QA pueda comparar los permisos de cada usuario contra una fixture
+      escrita a mano
+    * Fix: el rail se vuelve a resolver cuando el servicio de menus de Odoo reemplaza
+      su payload (evento ``MENUS:APP-CHANGED``, p. ej. al cambiar de empresa), en vez
+      de quedarse con las entradas del primer arranque
+    * Fix: fuera el flag ``drawerOpenPending`` y su listener, que dejaban el drawer
+      en un estado inconsistente si el primer clic llegaba antes del montaje
+    * Fix: se elimina el loop permanente de ``requestAnimationFrame``; el estado de
+      fullscreen se lee directo de ``webclient`` cuando cambia la UI
+    * Fix: el brand de la navbar no lleva ya ``o_active`` fijo (era siempre verdadero y
+      por eso nunca se ocultaba)
+    * Fix: todos los scripts de ``cdp/`` salen con codigo 1 cuando un check falla, para
+      que un rojo en consola no se cuele como corrida verde
+    * Chore: ``noupdate="1"`` fuera de los grupos, que hacia que cambiar un
+      ``implied_id`` en un upgrade no se aplicara nunca
+
 .. changelog:: 19.0.1.2.0
 
     * Feat: un grupo de permisos por módulo nativo (CRM, Ventas, POS, Compras,
