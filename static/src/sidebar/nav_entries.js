@@ -88,12 +88,33 @@ export const NAV_MAP = [
         id: "productos",
         label: "Productos",
         icon: { kind: "img", src: BRAND_ICON("brand-productos") },
+        // Cada submenú es una sección de una sola hoja accionable
+        // (`childrenTree` vacío), no un grupo. Por eso flyout y drawer tienen
+        // que caer a `section.leaf` cuando la sección no trae árbol.
+        //
+        // El `label` de cada sección NO es lo que se ve en pantalla: eso lo pone
+        // el `name` del menú del core, en el idioma del usuario. El label está
+        // para distinguir las claves del t-foreach (las 4 se resolverían a
+        // `def.label` y colisionarían en `t-key`).
+        //
+        // Sin `stock.group_stock_user` las secciones que cuelgan de Ventas o de
+        // Ecommerce no resuelven y el entry se muestra recortado: es el sidebar
+        // responsivo a permisos, no un fallo. Ver `check_product_menus.js`, caso
+        // `inv`, y `security/product_menus.xml` por qué Atributos va por la ruta
+        // de website_sale y no por la de stock.
         sections: [
             {
-                xmlids: [
-                    "stock.menu_product_variant_config_stock",
-                    "stock.menu_stock_inventory_control",
-                ],
+                label: "Productos",
+                xmlids: ["stock.menu_product_variant_config_stock"],
+            },
+            { label: "Variantes", xmlids: ["stock.product_product_menu"] },
+            {
+                label: "Listas de precios",
+                xmlids: ["sale.menu_product_pricelist_main"],
+            },
+            {
+                label: "Atributos",
+                xmlids: ["website_sale.menu_product_attribute_action"],
             },
         ],
     },

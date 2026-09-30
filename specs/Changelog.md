@@ -5,6 +5,129 @@
 
 ---
 
+## Sesión 2026-09-30 — Submenús de Producto en el sidebar (D-41, BUG-S-055/056)
+
+### Qué se pidió
+
+Que en la entrada **Productos** del sidebar aparezcan como submenús: categorías, atributos,
+productos, listas de precios y variantes.
+
+### Qué se entregó
+
+4 de los 5. **Categorías se omitió por decisión explícita del usuario**: en el core toda ruta de
+`product.category` cuelga de un nodo *Configuration* gateado a manager (en `stock`, `sale`,
+`purchase` y `account`), así que incluirla exigía abrir esa sección entera. Se ofreció la opción y
+el usuario eligió omitirla antes que escalar privilegios.
+
+Cada submenú es una sección-hoja accionable en `NAV_MAP`, y flyout y drawer ahora caen a
+`section.leaf` cuando la sección no trae `childrenTree` — ese era el bug de fondo: la entrada
+existía en el rail pero salía vacía.
+
+### Hallazgo que condicionó el diseño
+
+El módulo `product` **no expone ningún xmlid de menú** en Odoo 19 (0 filas en `ir_model_data`
+filtrando `module='product'`). Los destinos viven en `stock`/`sale`/`website_sale`, y varios de
+esos `<menuitem>` siguen sin `id`. Por eso Atributos va por la rama de `website_sale` (la de
+`stock` pasa por Configuration).
+
+### Archivos
+
+- `static/src/sidebar/nav_entries.js` — 4 secciones-hoja
+- `static/src/sidebar/sidebar.xml` — fallback a `section.leaf` en flyout y drawer
+- `roles/erpico_web_sidebar_roles/security/product_menus.xml` — nuevo, 3 gates con `(4, ...)`
+- `static/tests/nav_entries.test.js` — 2 tests
+- `cdp/check_product_menus.js`, `cdp/cdp_productos_dom.js` — nuevos
+- `cdp/seed_users.py`, `cdp/qa_config.js`, `cdp/expected_rail.js` — usuario `inv` + fixture
+- versiones 19.0.1.5.0 (main) y 19.0.1.2.0 (roles)
+
+### QA en vivo
+
+Suite 9/9 verde contra `sidebar_test`. `check_product_menus.js` con 26 aserciones en 4 usuarios;
+`cdp_productos_dom.js` confirma `inv` = 2 items y `basic` = 4 items, en drawer (375px) y flyout
+(1440px), navegables y sin cabeceras de grupo.
+
+### Trampa que casi deja el fix sin probar
+
+`basic` **no** puede probar `product_menus.xml`: ya trae `product.group_product_variant` y
+`product.group_product_pricelist`, así que los 4 menús se verían igual sin el módulo. Se creó `inv`
+(sólo rol Inventario ERPICO) para eso. Y al tocar el seed se descubrió que `basic` estaba como
+usuario interno pelado (`[]`), contradiciendo el baseline de 122 menús y rail de 9 → BUG-S-056.
+
+---
+
+## Sesión 2026-09-30 — Reportes visibles para usuarios, drawer móvil a todos los niveles
+
+### Qué se pidió
+
+Que los grupos de permisos ERPICO permitan ver los submenús de **Reportes** en todos los módulos.
+
+### Diagnóstico (auditado contra odoo/odoo 19.0)
+
+| Entrada del rail | Menú de reportes | Gate nativo | ¿Faltaba? |
+|---|---|---|---|
+| Ventas | `sale.menu_sale_report` | `sales_team.group_sale_manager` | sí |
+| Inventario | `stock.menu_warehouse_report` | `stock.group_stock_manager` | sí |
+| Ecommerce | `website_sale.menu_report_sales` | `sales_team.group_sale_manager` | sí |
+| Compras | `purchase.purchase_report_main` | `purchase.group_purchase_manager` | sí |
+| CRM | `crm.crm_menu_report` | `sales_team.group_sale_salesman` | ya OK |
+| POS | `point_of_sale.menu_point_rep` | sin gate propio | ya OK (pero 2 hijos reventan) |
+| Website | `website.menu_reporting` | sin gate propio | ya OK |
+
+**ACL:** el grupo *usuario* ya tiene lectura sobre `sale.report`, `purchase.report`, `stock.move`,
+`stock.quant`, `report.pos.order` y `crm.activity.report`. Destapar los menús no produce Access
+Denied — salvo los dos wizards de POS (BUG-S-052).
+
+### Decisiones
+
+- **D-40** los reportes se destapan sumando el grupo **usuario** al `group_ids` del menú nativo, con
+  `(4, ref(...))`; **nunca** implicando el grupo *manager* en el rol, que además abriría
+  *Configuration* de cada app.
+- Se gatea con el grupo nativo y no con `group_*_erpico`: así lo ve cualquier usuario de la app,
+  también los asignados a mano en Ajustes.
+- **No** se amplía `sale.report` con `group_sale_salesman_all_leads`: el reporte de Ventas sale
+  filtrado a los pedidos propios por `sale_order_report_personal_rule`. Es el default que no escala
+  permisos.
+- **Contabilidad fuera**: `account.menu_finance_reports` está gateado por
+  `account.group_account_readonly` y no hay rol ERPICO de contabilidad (D-31 la sacó del rail).
+- `website_sale` entra en `depends` del módulo de roles.
+- Se arregla de paso el bug de los 2 wizards de POS y el drawer de un solo nivel.
+
+### Qué se hizo
+
+- **Nuevo** `roles/erpico_web_sidebar_roles/security/report_menus.xml`: 4 menús destapados con `(4, ...)`
+  y 2 de POS acotados con `(6, 0, ...)`. Comentario de cabecera con el porqué del mecanismo, la
+  referencia a BUG-S-035 en reversa y las trampas (menú único de Odoo, ACL, `menu_valuation`).
+- `roles/erpico_web_sidebar_roles/__manifest__.py`: `19.0.1.0.0` → `19.0.1.1.0`, `website_sale` en
+  `depends`, el archivo nuevo en `data` después de `security/data.xml`.
+- `sidebar.xml`: nuevo template `erpico_web_sidebar.DrawerMenu`, recursivo, calcado de `FlyoutMenu`
+  (BUG-S-053). Sin cambios en JS.
+- `sidebar.scss`: `.o_erpico_drawer_subgroup`, `.o_erpico_drawer_group_item` sin cursor/hover, y
+  sangría de 16px por nivel anidado.
+- `erpico_web_sidebar` sube a `19.0.1.4.0` (sólo cambian template y SCSS).
+- Docs: `Decisiones.md` (D-40), `Bugs.md` (BUG-S-052, BUG-S-053), `TESTS_COVERAGE.md` (C13–C15
+  marcados como **pendientes**), los dos `readme/CHANGELOG.rst`.
+
+### Lo que NO se tocó
+
+`nav_entries.js` / `NAV_MAP`, `sidebar.js`, `cdp/expected_rail.js`,
+`static/tests/nav_entries.test.js`. Ninguna entrada del rail se agrega o saca: el rail sigue
+teniendo las mismas 10, sólo aparecen más hijos en el flyout.
+
+### Verificación
+
+**Pendiente — no ejecutada.** No hay Docker corriendo en esta sesión, así que falta:
+
+1. `odoo -u erpico_web_sidebar,erpico_web_sidebar_roles` → exit 0, sin warnings.
+2. Por cada usuario de `cdp/seed_users.py`: *Reporting* visible en el flyout de Ventas,
+   Inventario, Compras y Ecommerce; *Configuration* sigue ausente.
+3. Cada reporte abre sin Access Denied (el de Ventas puede salir filtrado a lo propio: es lo
+   esperado).
+4. POS: *Sales Details* y *Session Report* ausentes para el usuario POS normal; *Orders* abre.
+5. Viewport < 992px: el drawer despliega *Reporting* con sus 4 hijos.
+6. Ojo con la caché de assets (D-23): si se toca el template, reiniciar el contenedor.
+
+---
+
 ## Sesión 2026-09-28 — Auditoría de la 1.2.0: roles asignables, QA que de verdad falla
 
 ### Qué se pidió
@@ -856,9 +979,57 @@ prefijo `BUG-S-` (evita colisión con la suite `erpico_debranding`).
   `cdp_allapps.js`, `cdp_matrix.js` con usuario sin POS, `cdp_fullscreen.js`, `cdp_drawer_nav.js`) y
   el arranque de Odoo con el menú nuevo (recordatorio D-23: reiniciar el contenedor tras editar JS).
 
+### QA en vivo 2026-09-30 (cierre de C13-C15)
+
+Stack levantado (`compose.test.yml`, Odoo 19.0-20260908, BD `sidebar_test`) y verificado sobre
+el estado real, no sobre simulaciones.
+
+- **Upgrade limpio** de `erpico_web_sidebar,erpico_web_sidebar_roles`. `report_menus.xml` carga,
+  sin warnings ni tracebacks.
+- **Antes/después medido en BD.** Los 4 nodos de Reportes estaban en `Administrator`; tras el
+  upgrade: Ventas y Ecommerce `Administrator + User: Own Documents Only` (=`group_sale_salesman`),
+  Inventario y Compras `Administrator + User`, y `menu_sale_config` / `menu_purchase_config`
+  siguen en `Administrator` solamente, o sea sin escalada de privilegios.
+- **`check_report_menus.js` (nuevo, 27 aserciones): todas verdes.** Además de presencia/ausencia,
+  comprueba que cada nodo cuelgue del padre esperado, para que no sea un menú huérfano que aparece
+  en el payload pero no se puede alcanzar.
+- **Los reportes abren de verdad.** Con `search_read` como el usuario real: `basic` lee
+  `purchase.report`, `sale.report`, `stock.move`, `stock.move.line`, `report.pos.order` sin error;
+  `admin` no falla en ninguno. Los dos wizards de POS tiran `AccessError` para `basic`, que es
+  justo lo que BUG-S-052 evita que pueda provocar desde la UI.
+- **`sale.report` devuelve 0 filas a `basic` y `ventas`, y 1 a `admin`**: confirma que la
+  `sale_order_report_personal_rule` filtra a los pedidos propios en vivo, que es el trade-off que
+  D-40 acepta a propósito.
+- **Sin regresión:** `cdp_matrix.js` sigue verde con el rail de 10/5/9 entradas, y `basic` pasó de
+  120 a 122 menús en el payload (los 2 de la rama de Compras que BUG-S-054 destapó).
+- **`cdp_drawer_reporting.js` (nuevo): verde.** Con `basic` a 375px, "Reportes" aparece en 6 apps
+  con hojas debajo, hay 6 grupos a depth ≥ 2 (p.ej. Inventario > Operaciones > Traslados) — que es
+  lo que prueba que el `t-call` recursivo dibuja de verdad y no una copia de un nivel —, navegar una
+  hoja bajo "Reportes" cambia la URL y cierra el drawer, y "Configuración" no aparece.
+- Suite completa **7/7 en verde**: `cdp_smoke`, `cdp_matrix`, `cdp_drawer`, `cdp_drawer_nav`,
+  `cdp_drawer_reporting`, `check_menu_leak`, `check_report_menus`.
+
+**BUG-S-054 (nuevo, encontrado por esta QA):** abrir solo `purchase.purchase_report_main` no
+servía de nada. `_visible_menu_ids` hace "remove all menus without children", y en Compras ese
+nodo tiene una única hoja (`purchase.purchase_report`) gateada al manager, así que se quedaba sin
+hijos visibles y el nodo entero se podaba. Fix: abrir también la hoja. Detalle en `specs/Bugs.md`.
+
+Dos cosas que costaron tiempo y conviene no volver a tropezar con ellas, ambas en el encabezado de
+`cdp/cdp_drawer_reporting.js`:
+
+- El toggle del drawer está en `.o_main_navbar` con `rect.y === 0` y a 375px el click por
+  coordenadas de Puppeteer no lo alcanza (el evento no llega ni a fase capture del document), aunque
+  `elementFromPoint` devuelva el propio botón. Con `element.click()` el handler de OWL corre igual.
+  El drawer abría bien: era el mecanismo de click, no el módulo.
+- El sidebar rotula la sección **"Reportes"** en español, no "Reporting" como se llama el nodo en el
+  core. Buscar el nombre del core hacía que el test fallara por una cadena mal escrita.
+
 ### Estado al cierre
 
-- Funcionalidad implementada y verificada a nivel estático/simulado; falta validación en navegador.
+- Funcionalidad implementada y **verificada en runtime**: upgrade limpio, contrato de permisos
+  verificado contra `/web/webclient/load_menus`, reportes abiertos con el usuario real y drawer
+  recursivo probado a 375px.
+- Sin regresiones en la suite existente.
 - Ningún commit realizado (esperando orden explícita).
 
 ---

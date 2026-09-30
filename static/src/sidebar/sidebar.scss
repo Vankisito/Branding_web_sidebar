@@ -610,6 +610,44 @@ $erpico-allapps-w: 360px;
                 color: $erpico-horizon;
             }
         }
+
+        // El `li` de un grupo no es accionable: sin cursor ni hover, o el
+        // "Reporting" del drawer se pinta como si fuera un destino.
+        .o_erpico_drawer_group_item {
+            padding: 0;
+            cursor: default;
+
+            &:hover {
+                background: transparent;
+                outline: none;
+            }
+
+            > .o_erpico_drawer_subgroup {
+                display: block;
+                padding: 8px 16px 2px 44px;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.02em;
+                color: rgba(255, 255, 255, 0.45);
+            }
+        }
+
+        // Niveles anidados: "Reporting" cuelga un nivel bajo la app, y sus
+        // reportes uno más. Cada `ul` dentro de otro `ul` corre la sangría
+        // 16px, así que la profundidad se lee sola sin tocar el template.
+        ul li {
+            padding-left: 60px;
+        }
+
+        ul ul li {
+            padding-left: 76px;
+        }
+
+        // Si algún addon mete un grupo un nivel más abajo, su etiqueta corre
+        // la misma sangría que sus ítems.
+        ul > .o_erpico_drawer_group_item > .o_erpico_drawer_subgroup {
+            padding-left: 60px;
+        }
     }
 }
 

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        Reportes para los usuarios (no managers) de cada app.
+
+        En Odoo 19 el nodo "Reporting" de casi todas las apps está gateado por el
+        grupo *manager* del módulo, así que un usuario normal no lo ve. Fuentes
+        auditadas en odoo/odoo 19.0:
+
+            sale.menu_sale_report            groups="sales_team.group_sale_manager"
+            stock.menu_warehouse_report      groups="stock.group_stock_manager"
+            purchase.purchase_report_main    groups="purchase.group_purchase_manager"
+            website_sale.menu_report_sales   groups="sales_team.group_sale_manager"
+            point_of_sale.menu_point_rep     (sin gate propio)
+            crm.crm_menu_report              groups="sales_team.group_sale_salesman"
+            website.menu_reporting           (sin gate propio)
+
+        Por qué `(4, ref(...))` sobre `group_ids` del menú y NO sumar el grupo
+        manager al `implied_ids` del rol ERPICO:
+
+        `ir.ui.menu.group_ids` es un m2m ADITIVO con semántica OR: el filtro de
+        `ir_ui_menu._visible_menu_ids` (addons/base/models/ir_ui_menu.py) es
+        `not m.group_ids or m.group_id in groups`. Sumar el grupo *usuario* a un
+        menú abre exactamente ese menú y nada más. En cambio poner el grupo
+        *manager* en `implied_ids` abriría también "Configuration" de cada app
+        y todas las acciones de ajuste que ese grupo arrastra: una escalada de
+        privilegios que el cliente no pidió.
+
+        Es el mismo mecanismo que descartó BUG-S-035, pero usado al revés: allí
+        se creyó que `(4, ref(...))` restringía, y lo que hacía era ampliar. Acá
+        ampliar es justo lo que se busca, y acotado a un solo menú.
+
+        Trampa de Odoo 19 que condiciona todo lo de abajo: `_visible_menu_ids`
+        aplica, después del filtro por grupos, un "remove all menus without
+        children". Un nodo de agrupación al que no le queda NINGÚN hijo visible
+        desaparece entero del payload, y con él se va la rama entera. Por eso
+        abrir sólo el nodo padre no garantiza nada: hay que abrir también la
+        hoja que cuelga de él. Se verificó contra /web/webclient/load_menus: con
+        `group_purchase_user` y sólo el padre abierto, Compras no veía nada.
+
+        Se gatea con el grupo *usuario nativo* y no con el grupo ERPICO
+        (`group_ventas_erpico` etc.) a propósito: así el reporte lo ve cualquier
+        usuario de la app, también los que un administrador asignó a mano en
+        Ajustes sin pasar por un rol.
+
+        Los `group_ids` se suman con `(4, ...)` salvo en los dos wizards de POS,
+        que usan `(6, 0, ...)` porque el estado deseado ahí es "sólo manager", y
+        no "manager y además estos". Son los dos únicos ítems de Reporting cuyo
+        modelo no tiene ACL de lectura para `group_pos_user`: abrirlos con un
+        usuario POS normal es un Access Denied seguro (bug del core, BUG-S-052).
+
+        `stock.menu_valuation` ("Locations") NO se toca: su definición nativa
+        lleva `stock.group_stock_multi_locations, stock.group_tracking_owner,
+        base.group_no_one` porque su visibilidad depende de si multi-ubicación
+        está habilitado. Eso lo decide el core, no este módulo.
+
+        Sin `noupdate`: `(4, ...)` y `(6, 0, ...)` son idempotentes, y así un
+        upgrade re-repara el estado si alguien lo editó a mano desde el editor de
+        menús.
+    -->
+
+    <!-- Ventas: sale.report tiene ACL de lectura para group_sale_salesman. -->
+    <record id="sale.menu_sale_report" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <!-- Inventario: stock.move y stock.quant dan lectura a group_stock_user. -->
+    <record id="stock.menu_warehouse_report" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <!--
+        Compras: purchase.report tiene ACL de lectura para group_purchase_user.
+
+        OJO, hace falta el segundo record además del primero. A diferencia de
+        Ventas (4 hojas sin gate) e Inventario (3 de 4 sin gate), en Compras
+        "Reporting" tiene UNA sola hoja, `purchase.purchase_report`, que el core
+        define con `groups="purchase.group_purchase_manager"`.
+
+        Eso importa porque `ir_ui_menu._visible_menu_ids` termina con
+        "remove all menus without children": un nodo de agrupacion al que le
+        queda CERO hijos visibles desaparece del payload, y con él se va
+        toda la rama. Abriendo sólo el padre, `group_purchase_user` ve el nodo
+        "Reporting"... que no le llega a aparecer nunca.
+
+        Por eso se abre la hoja y el padre a la vez: la hoja da el hijo visible
+        que evita la poda, y el padre queda pendiente para el caso de que
+        `purchase_report` deje de ser la unica hoja.
+    -->
+    <record id="purchase.purchase_report_main" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('purchase.group_purchase_user'))]"/>
+    </record>
+
+    <record id="purchase.purchase_report" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('purchase.group_purchase_user'))]"/>
+    </record>
+
+    <!--
+        Ecommerce: cuelga de website.menu_reporting, que ya es visible para
+        base.group_user, así que hoy el usuario ve "Reporting > Analytics" y
+        "Online Sales" le queda oculto. Requiere website_sale en depends.
+    -->
+    <record id="website_sale.menu_report_sales" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <!--
+        POS: menu_point_rep ya se ve sin gate propio (hereda group_pos_user y
+        group_pos_manager del root), pero sus dos wizards de informe sólo tienen
+        ACL para group_pos_manager. Un usuario POS normal los ve y revienta al
+        abrirlos; se acotan al grupo manager.
+    -->
+    <record id="point_of_sale.menu_report_order_details" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('point_of_sale.group_pos_manager')])]"/>
+    </record>
+
+    <record id="point_of_sale.menu_report_daily_details" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('point_of_sale.group_pos_manager')])]"/>
+    </record>
+
+</odoo>

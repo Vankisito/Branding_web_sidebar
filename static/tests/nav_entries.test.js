@@ -70,6 +70,37 @@ describe("ERPICO sidebar — resolución de entradas por xmlid", () => {
         expect(marketing.sections[0].label).toBe("Email Marketing");
     });
 
+    test("Productos expone sus submenús como hojas accionables", () => {
+        const service = makeService([
+            makeMenu(1, { xmlid: "stock.menu_product_variant_config_stock", actionID: 11 }),
+            makeMenu(2, { xmlid: "stock.product_product_menu", actionID: 12 }),
+            makeMenu(3, { xmlid: "sale.menu_product_pricelist_main", actionID: 13 }),
+            makeMenu(4, { xmlid: "website_sale.menu_product_attribute_action", actionID: 14 }),
+        ]);
+        const productos = resolveEntries(service).find((e) => e.id === "productos");
+        expect(productos.sections.map((s) => s.label)).toEqual([
+            "Productos",
+            "Variantes",
+            "Listas de precios",
+            "Atributos",
+        ]);
+        // Cada sección es una hoja sin hijos: childrenTree vacío y leaf = ella misma,
+        // que es el caso que el flyout y el drawer tienen que saber pintar.
+        for (const section of productos.sections) {
+            expect(section.childrenTree.length).toBe(0);
+            expect(section.leaf.id).toBe(section.menu.id);
+        }
+    });
+
+    test("Productos omite el submenú sin permiso y no colapsa la entrada", () => {
+        const service = makeService([
+            makeMenu(1, { xmlid: "stock.menu_product_variant_config_stock", actionID: 11 }),
+            makeMenu(2, { xmlid: "stock.product_product_menu", actionID: 12 }),
+        ]);
+        const productos = resolveEntries(service).find((e) => e.id === "productos");
+        expect(productos.sections.map((s) => s.label)).toEqual(["Productos", "Variantes"]);
+    });
+
     test("appIds permiten marcar la entrada activa", () => {
         const service = makeService([
             makeMenu(1, { xmlid: "crm.crm_menu_root", appID: 7 }),

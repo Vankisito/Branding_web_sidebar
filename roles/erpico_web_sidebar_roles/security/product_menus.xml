@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        Submenús de la entrada "Productos" del sidebar.
+
+        Odoo 19 cambió la topología de producto: el módulo `product` ya NO
+        define ningún `<menuitem>`, y por lo tanto no expone NINGÚN xmlid de
+        `ir.ui.menu` (verificado: SELECT sobre ir_model_data filtrando
+        module='product' devuelve 0 filas). Los destinos de producto viven
+        ahora repartidos en stock / sale / purchase / point_of_sale /
+        website_sale, y varios de esos `<menuitem>` siguen sin id, o sea sin
+        xmlid con el que referenciarlos.
+
+        Auditoría de los 5 destinos pedidos (BD sidebar_test, Odoo
+        19.0-20260908), con cadena de ancestros y gate de cada uno:
+
+            Categorías       stock.menu_product_category_config_stock
+                             gate propio: ninguno
+                             pero cuelga de stock.menu_product_in_config_stock
+                             <- stock.menu_stock_config_settings [Configuración]
+                             GATE: stock.group_stock_manager  => INACCESIBLE
+                             (las otras 3 rutas: sale.menu_product_categories y
+                             purchase.menu_product_category_config_purchase pasan
+                             por Configuración de su app; account.*
+                             por Facturación)
+
+            Productos        stock.menu_product_variant_config_stock
+                             gate propio: ninguno
+                             <- stock.menu_stock_inventory_control (sin gate)
+                             <- stock.menu_stock_root (group_stock_user) => OK
+
+            Variantes        stock.product_product_menu
+                             gate propio: product.group_product_variant
+                             <- stock.menu_stock_inventory_control (sin gate)
+                             <- stock.menu_stock_root => sólo falta abrir el gate
+
+            Listas de precios sale.menu_product_pricelist_main
+                             gate propio: product.group_product_pricelist
+                             <- sale.product_menu_catalog (group_sale_salesman)
+                             <- sale.sale_menu_root (sin gate) => sólo el gate
+
+            Atributos        website_sale.menu_product_attribute_action
+                             gate propio: product.group_product_variant
+                             <- website_sale.menu_catalog (group_sale_salesman)
+                             <- website.menu_website_configuration
+                                [base.group_user] => sólo el gate
+                             OJO: la ruta de stock (stock.menu_attribute_action)
+                             cuelga de Configuración, así que NO sirve. Se usa la
+                             de website_sale porque es la única que no escala
+                             privilegios. Requiere website_sale en depends.
+
+        Por qué se usa `(4, ref(...))` y no el grupo manager en `implied_ids`:
+        igual que en report_menus.xml. `ir.ui.menu.group_ids` es aditivo con
+        semántica OR (filtro `not m.group_ids or m.group_id in groups` de
+        `ir_ui_menu._visible_menu_ids`), así que sumar el grupo *usuario* abre
+        sólo ese menú. Sumar el grupo manager al rol abriría además
+        Configuration y las acciones de ajuste que arrastra.
+
+        Por qué NO hay Access Denied detrás de estos tres ítems: se auditaron
+        las ACL de lectura de los cinco modelos y `product.category`,
+        `product.template`, `product.pricelist`, `product.attribute` y
+        `product.product` dan lectura a `base.group_user` (el "Role / User" de
+        la salida). Ninguna de las 5 acciones tiene tampoco `group_ids` propio,
+        así que abrir el menú alcanza para poder abrirlas. Es lo contrario del
+        caso POS de report_menus.xml (BUG-S-052), que sí estaba acotado a manager.
+
+        Por qué NO se abre Configuración para poder incluir Categorías: abrir
+        `stock.menu_stock_config_settings` a `group_stock_user` no expone sólo
+        Categorías, sino toda la sección Configuración de Inventario. Se decidió
+        explícitamente con el usuario omitir Categorías en lugar de escalar.
+        Categorías sigue disponible bajo Inventario > Configuración para quien
+        sea manager, como en el core.
+    -->
+
+    <!-- Inventario > Productos > Variantes del producto. -->
+    <record id="stock.product_product_menu" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <!-- Ventas > Productos > Listas de precios. -->
+    <record id="sale.menu_product_pricelist_main" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <!-- Website > Comercio electrónico > Productos > Atributos. -->
+    <record id="website_sale.menu_product_attribute_action" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+</odoo>

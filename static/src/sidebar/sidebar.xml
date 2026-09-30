@@ -86,13 +86,16 @@
                 </div>
                 <t t-foreach="state.flyoutEntry.sections" t-as="section" t-key="section.label">
                     <span
-                        t-if="state.flyoutEntry.sections.length > 1"
+                        t-if="section.childrenTree.length and state.flyoutEntry.sections.length > 1"
                         class="o_erpico_flyout_group"
                         t-esc="section.label"
                     />
                     <ul class="o_erpico_flyout_menu">
                         <t t-call="erpico_web_sidebar.FlyoutMenu">
-                            <t t-set="items" t-value="section.childrenTree"/>
+                            <t
+                                t-set="items"
+                                t-value="section.childrenTree.length ? section.childrenTree : (section.leaf ? [section.leaf] : [])"
+                            />
                         </t>
                     </ul>
                 </t>
@@ -170,20 +173,19 @@
                             </button>
                             <t t-foreach="entry.sections" t-as="section" t-key="section.label">
                                 <span
-                                    t-if="entry.sections.length > 1"
+                                    t-if="section.childrenTree.length and entry.sections.length > 1"
                                     class="o_erpico_drawer_group"
                                     t-esc="section.label"
                                 />
-                                <ul t-if="section.childrenTree.length" class="o_erpico_drawer_sub">
-                                    <t t-foreach="section.childrenTree" t-as="child" t-key="child.id">
-                                        <li
-                                            t-att-class="{ 'o_active': section.leaf and section.leaf.id === child.id }"
-                                            t-on-click="() => this.openItem(child)"
-                                        >
-                                            <span t-esc="child.name"/>
-                                        </li>
+                                <t t-if="section.childrenTree.length or section.leaf">
+                                    <t t-call="erpico_web_sidebar.DrawerMenu">
+                                        <t
+                                            t-set="items"
+                                            t-value="section.childrenTree.length ? section.childrenTree : [section.leaf]"
+                                        />
+                                        <t t-set="activeId" t-value="section.leaf ? section.leaf.id : 0"/>
                                     </t>
-                                </ul>
+                                </t>
                             </t>
                         </div>
                     </t>
@@ -223,6 +225,42 @@
                 </ul>
             </li>
         </t>
+    </t>
+
+    <!--
+        Gemelo del FlyoutMenu para el drawer móvil. Es recursivo por la misma
+        razón que el flyout (D-13): los nodos "Reporting" cuelgan dos niveles
+        abajo del root de cada app, y un drawer de un solo nivel los dejaba
+        inalcanzables — el usuario veía "Reporting" como un único ítem que
+        abría el primer reporte y no podía llegar a los demás.
+
+        `activeId` es el id de la hoja alcanzable de la sección y sólo pinta el
+        `o_active` del primer nivel. Se re-declara en cada llamada, incluso en la
+        recursiva, para que el compilador de QWeb lo tenga como variable conocida
+        en todos los niveles: si se dejara sin declarar en la recursión y OWL no
+        compartiera el contexto entre `t-call`, la expresión caería sobre un
+        identificador inexistente. El valor fluye porque el `t-set` se compila
+        sobre el contexto del template, así que la reasignación es un no-op.
+    -->
+    <t t-name="erpico_web_sidebar.DrawerMenu">
+        <ul class="o_erpico_drawer_sub">
+            <t t-foreach="items" t-as="item" t-key="item.id">
+                <li
+                    t-if="!item.childrenTree.length"
+                    t-att-class="{ 'o_active': activeId ? activeId === item.id : false }"
+                    t-on-click="() => this.openItem(item)"
+                >
+                    <span t-esc="item.name"/>
+                </li>
+                <li t-else="" class="o_erpico_drawer_group_item">
+                    <span class="o_erpico_drawer_subgroup" t-esc="item.name"/>
+                    <t t-call="erpico_web_sidebar.DrawerMenu">
+                        <t t-set="items" t-value="item.childrenTree"/>
+                        <t t-set="activeId" t-value="activeId"/>
+                    </t>
+                </li>
+            </t>
+        </ul>
     </t>
 
 </templates>

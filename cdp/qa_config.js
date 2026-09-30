@@ -38,6 +38,16 @@ const USERS = {
         p: process.env.ODOO_PASS_BASIC || 'basic',
         uid: Number(process.env.ODOO_UID_BASIC || 18),
     },
+    // Usuario con el rol ERPICO de Inventario y nada mas. Es el unico caso QA
+    // que tiene stock.group_stock_user SIN product.group_product_variant ni
+    // product.group_product_pricelist, asi que es el que depende de
+    // security/product_menus.xml. Los demas usuarios QA ya traen esos grupos por
+    // otras vias y no distinguen si el modulo funciona o no.
+    inv: {
+        u: process.env.ODOO_USER_INV || 'inv',
+        p: process.env.ODOO_PASS_INV || 'inv',
+        uid: Number(process.env.ODOO_UID_INV || 23),
+    },
 };
 
 module.exports = {

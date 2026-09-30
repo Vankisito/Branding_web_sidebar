@@ -484,3 +484,138 @@ depende de él. Verificado con `cdp_fullscreen.js` C9 (oculta y restaura).
 **Consecuencias:** `_resolveNavigation()` es idempotente y se puede llamar en cualquier momento; si
 el flyout estaba abierto sobre una entrada que ya no resuelve, se cierra. Menos código y menos
 superficie que un bucle de animación permanente.
+
+---
+
+## D-40 — Los reportes se destapan por `group_ids` del menú, no por `implied_ids` del manager
+
+**Fecha:** 2026-09-30
+
+**Decisión:** en `roles/erpico_web_sidebar_roles/security/report_menus.xml`, el nodo *Reporting* de
+cada app se abre **sumando el grupo _usuario_ nativo al `group_ids` del menú nativo**, con
+`<record id="<módulo>.<xmlid>" model="ir.ui.menu"><field name="group_ids" eval="[(4, ref(...))]"/>`.
+Los grupos se suman al `implied_ids` de los roles ERPICO **no**.
+
+**Por qué (1):** `ir.ui.menu.group_ids` es un m2m **aditivo** con semántica OR — el filtro de
+`ir_ui_menu._visible_menu_ids` es `not m.group_ids or m.group_id in groups` — así que `(4, ref(...))`
+abre exactamente ese menú y nada más.
+
+**Por qué (2):** la alternativa de poner el grupo *manager* en `implied_ids` también funciona, pero
+arrastra todo lo que ese grupo abre: *Configuration* de cada app, acciones de ajuste, precios,
+impuestos, Diário. El cliente pidió ver reportes, no administrar las apps. Abrir un report no
+requiere ser manager: el ACL de `sale.report`, `purchase.report`, `stock.move`, `stock.quant`,
+`report.pos.order` y `crm.activity.report` ya da lectura al grupo usuario (verificado en
+`ir.model.access.csv` de 19.0).
+
+**Por qué (3):** es el mismo mecanismo que descartó BUG-S-035, pero al revés. Allí se creyó que
+`(4, ref(...))` restringía, cuando amplía — y la ampliación no era el objetivo. Acá la ampliación es
+justo lo pedido, y acotada a un solo menú por app.
+
+**Por qué se gatea con el grupo nativo y no con el ERPICO:** así lo ve cualquier usuario de la app,
+incluidos los que un administrador asignó a mano en Ajustes sin pasar por un rol. El cliente lo
+eligió explícitamente sobre la alternativa de gatear con `group_*_erpico`.
+
+**Consecuencias y trampas:**
+
+- Odoo tiene **un solo árbol de menús**: destapar `sale.menu_sale_report` lo muestra también en el
+  menú nativo de Odoo, no sólo en el sidebar ERPICO. Inevitable con este enfoque.
+- `sale.report` conserva `sale_order_report_personal_rule`, así que un usuario sin
+  `sales_team.group_sale_salesman_all_leads` ve **sólo sus propios pedidos** en el reporte. Se
+  aceptó a propósito: implicar ese grupo ampliaría también el resto de vistas de venta.
+- Los dos wizards de POS (`menu_report_order_details` y `menu_report_daily_details`) usan
+  `(6, 0, [...])`, no `(4, ...)`: el estado deseado es "sólo manager". Son los únicos ítems de
+  Reporting cuyo modelo no tiene ACL de lectura para `group_pos_user` (BUG-S-052).
+- `stock.menu_valuation` ("Locations") **no** se toca: su definición nativa lleva
+  `group_stock_multi_locations, group_tracking_owner, base.group_no_one` porque su visibilidad
+  depende de si multi-ubicación está habilitado. Lo decide el core.
+- **Abrir el nodo padre no basta: hay que abrir también su hoja.** `ir_ui_menu._visible_menu_ids`
+  aplica, después del filtro por grupos, un *"remove all menus without children"*: un nodo de
+  agrupación al que no le queda **ningún** hijo visible desaparece entero del payload, y con él la
+  rama. En Compras esto era el caso normal, no la excepción: `purchase.purchase_report_main` tiene
+  **una sola** hoja, `purchase.purchase_report`, y el core la define con
+  `groups="purchase.group_purchase_manager"`. Con el padre solo, `group_purchase_user` se quedaba
+  con cero hijos visibles y el nodo se podaba: D-40 era inerte en Compras (BUG-S-054, detectado por
+  `check_report_menus.js` en la QA en vivo). Ventas e Inventario no lo tienen, porque sus 4 hojas
+  son casi todas sin gate.
+- El archivo va **sin `noupdate`**: `(4, ...)` y `(6, 0, ...)` son idempotentes, y así un upgrade
+  re-repara el estado si alguien lo editó a mano desde el editor de menús.
+- `website_sale` entra en `depends` del módulo de roles: `menu_report_sales` sólo existe si
+  `website_sale` está instalado, y cuelga de `website.menu_reporting`, que ya es visible para
+  `base.group_user`. Arrastra `website_payment`, `website_mail`, `delivery`, `digest`,
+  `portal_rating` y `html_builder`.
+
+**Dónde vive:** `roles/erpico_web_sidebar_roles/security/report_menus.xml`. **Cero cambios en JS**:
+el flyout ya es recursivo (`sidebar.xml:207`) y el server manda los menús destapados en
+`menuService.getAll()`, que es lo que consume `resolveEntries` (D-30).
+
+## D-41 — Cada submenú de Producto es una sección-hoja, y las plantillas caen a `section.leaf`
+
+**Fecha:** 2026-09-30
+
+**Decisión:** la entrada `productos` de `NAV_MAP` se parte en 4 secciones de una sola hoja
+accionable (`Productos`, `Variantes`, `Listas de precios`, `Atributos`) en vez de apuntar a un
+único contenedor. Flyout y drawer renderizan `section.leaf` cuando la sección no trae
+`childrenTree`. Los permisos van por `product_menus.xml`, con el mecanismo de D-40.
+
+**Por qué (1):** en Odoo 19 la entrada salía **vacía**. Apuntaba a
+`stock.menu_product_variant_config_stock`, que es una hoja accionable sin hijos, y las dos
+plantillas iteraban sólo `section.childrenTree` —que en una hoja es `[]`. El bug era del render,
+no de permisos: el menú era alcanzable y no se dibujaba.
+
+**Por qué (2):** el módulo `product` **no define ningún `<menuitem>`** en 19.0, y por lo tanto no
+expone **ningún** xmlid de `ir.ui.menu` (verificado: `SELECT` sobre `ir_model_data` filtrando
+`module='product'` devuelve 0 filas). No existe `product.menu_product_root`. Los destinos cuelgan de
+`stock` / `sale` / `purchase` / `point_of_sale` / `website_sale`, y varios de esos `<menuitem>`
+siguen sin `id`. Por eso `pickMenu` no alcanzaba: el primer xmlid candidato presente era una hoja.
+
+**Destinos elegidos** (los únicos con cadena de ancestros que no pasa por *Configuration*):
+
+| Submenú | xmlid | Gate nativo |
+|---|---|---|
+| Productos | `stock.menu_product_variant_config_stock` | ninguno |
+| Variantes | `stock.product_product_menu` | `product.group_product_variant` |
+| Listas de precios | `sale.menu_product_pricelist_main` | `product.group_product_pricelist` |
+| Atributos | `website_sale.menu_product_attribute_action` | `product.group_product_variant` |
+
+**Por qué (3) — Categorías queda fuera, por decisión del cliente:** en el core **toda** ruta de
+`product.category` pasa por un nodo *Configuration* gateado a manager
+(`stock.menu_product_in_config_stock` ← `stock.menu_stock_config_settings`; lo mismo en `sale` y
+`purchase`; y `account` exige el grupo de Facturación). Abrir cualquiera de esos ancestros no
+exponía Categorías: exponía **toda la sección Configuración**. Se ofreció al cliente y eligió
+omitir Categorías antes que escalar privilegios. Queda accesible bajo Inventario › Configuración
+para quien sea manager, como en el core. `check_product_menus.js` la fija en `notSee`.
+
+**Por qué (4) — Atributos va por `website_sale` y no por `stock`:** `stock.menu_attribute_action`
+tiene el mismo modelo y la misma acción, pero cuelga de *Configuration*. La única rama de Atributos
+que no escala es la de `website_sale.menu_catalog`, así que se usa esa. Side effect aceptado: el
+menú aparece también bajo Website › Comercio electrónico (el árbol de menús de Odoo es único, igual
+que en D-40).
+
+**Consecuencias y trampas:**
+
+- **La entrada se ve recortada según permisos, y es a propósito.** Listas de precios y Atributos
+  cuelgan de `sale.product_menu_catalog` y `website_sale.menu_catalog`, ambos gateados a
+  `sales_team.group_sale_salesman`. Un usuario con **sólo** el rol Inventario ERPICO no los alcanza.
+  Forzar los 4 exigiría abrir esos ancestros, y eso **arrastraría las apps Ventas y Website al rail**
+  de un usuario que no las tiene. El sidebar ya es responsivo a permisos por diseño (comentario de
+  `resolveEntries`), así que se respeta: el usuario de inventario ve 2 items. Ver `inv` en
+  `check_product_menus.js`, que además asserta `sale.sale_menu_root` ausente.
+- **No hay Access Denied detrás de estos ítems**, al contrario que en BUG-S-052: se auditaron las
+  ACL de lectura de los cinco modelos y `product.category`, `product.template`, `product.pricelist`,
+  `product.attribute` y `product.product` dan lectura a `base.group_user`. Las 5 acciones tampoco
+  tienen `group_ids` propio, así que abrir el menú alcanza.
+- **El texto visible no es el `label` de la sección** sino el `name` del menú del core, en el idioma
+  del usuario (`inv` ve "Product Variants" en inglés, `basic` ve "Variantes del producto" en
+  español). El `label` de la sección existe sólo para que las 4 claves del `t-foreach` no colisionen:
+  sin `label` explícito, `resolveEntries` les pondría a todas `def.label`.
+- **`basic` no puede probar este XML.** Trae `product.group_product_variant` y
+  `product.group_product_pricelist` por otras vías, así que los 4 menús se verían igual sin
+  `product_menus.xml`. Se agregó el usuario QA `inv` (sólo rol Inventario ERPICO) justamente para
+  eso: es el único con `stock.group_stock_user` y **sin** `product.group_product_variant`, o sea
+  sin el gate nativo de *Variantes*.
+- `seed_users.py` dejaba `basic` en `[]`, es decir como usuario interno pelado. Eso contradecía el
+  baseline con el que se calibró la suite (122 menús, rail de 9 items, expectativas de
+  `check_report_menus.js`). Se restauró a grupos usuario de las 4 apps, sin managers.
+
+**Dónde vive:** `static/src/sidebar/nav_entries.js` (secciones), `static/src/sidebar/sidebar.xml`
+(flyout y drawer), `roles/erpico_web_sidebar_roles/security/product_menus.xml` (permisos).

@@ -1,3 +1,32 @@
+.. changelog:: 19.0.1.5.0
+
+    * Feat: la entrada "Productos" del rail muestra sus submenus como items
+      navegables. Antes la entrada existia pero salia **vacia**: apuntaba a
+      ``stock.menu_product_variant_config_stock``, que es una hoja accionable sin
+      hijos, y tanto el flyout como el drawer solo iteraban ``section.childrenTree``.
+      Ahora cada submenu es su propia seccion y las dos plantillas caen a
+      ``section.leaf`` cuando la seccion no trae arbol, asi que una hoja accionable
+      se dibuja como item en vez de desaparecer. La entrada quedo con
+      Productos, Variantes y Listas de precios; Atributos se agrega desde
+      ``erpico_web_sidebar_roles`` (ver su changelog y D-41)
+    * Fix: el texto de un submenu sale del ``name`` del menu del core, en el
+      idioma del usuario, y no del ``label`` de la seccion. El ``label`` queda
+      solo como clave de agrupacion
+
+.. changelog:: 19.0.1.4.0
+
+    * Fix: el drawer movil dibuja **todos** los niveles de menu, no uno. El
+      flyout ya era recursivo desde 1.0 (D-13) pero el drawer no, asi que un grupo
+      de segundo nivel —p.ej. "Reporting"— quedaba como un unico item que abria la
+      primera hoja alcanzable y sus demas hijos eran inalcanzables. Nuevo template
+      ``erpico_web_sidebar.DrawerMenu`` con el mismo criterio que ``FlyoutMenu``
+      (hoja = sin ``childrenTree``, grupo = etiqueta + ``t-call`` recursivo) y
+      sangria de 16px por nivel en SCSS. Sin cambios en JS: ``openItem`` ya sabia
+      resolver. Ver BUG-S-053
+    * Chore: los permisos de los submenus "Reporting" los aporta ahora
+      ``erpico_web_sidebar_roles`` (ver su changelog y D-40); este modulo no toca
+      ningun menu nativo
+
 .. changelog:: 19.0.1.3.0
 
     * Feat: los grupos de permisos pasan al subaddon ``erpico_web_sidebar_roles``

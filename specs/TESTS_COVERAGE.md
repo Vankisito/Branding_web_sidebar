@@ -49,6 +49,9 @@ Edge headless + CDP contra `http://localhost:8071` (patrón validado en
 | C10 | Systray intacto (buscador, campana, usuario) | D-14 / S-011 (NavBar patch) | ✅ navbar renderiza; resto visual → manual |
 | C11 | Drawer cierra al navegar (app/submenu) | S-013 | ✅ CDP: cdp_drawer_nav.js |
 | C12 | Margin-left contenido no se acumula con rail | R2 | ✅ CDP: cdp_layout.js — sin acumulación. ⚠️ **BUG-S-020:** el test no llama `setViewport` → hereda 800×600 → sidebar `display:none` (breakpoint d-lg-flex ≥992); informe falso "sidebar oculto a 1024px". Con viewport real 1024: sidebar visible 60px, rail OK, R2 OK |
+| C13 | Drawer móvil con un grupo de 2º nivel: "Reporting" se despliega con sus hijos | BUG-S-053 / D-40 | ✅ CDP: `cdp_drawer_reporting.js` (nuevo) con `basic` a 375px → 6 apps con grupo "Reportes" y hojas debajo; 6 grupos a depth ≥ 2 (p.ej. Inventario > Operaciones > Traslados), que es lo que prueba el `t-call` recursivo; navega una hoja bajo "Reportes" ("Pronóstico") y el drawer cierra. 0 errores de consola |
+| C14 | Un usuario con rol ve "Reporting" en el flyout de Ventas/Inventario/Compras/Ecommerce, y "Configuration" sigue ausente | D-40 | ✅ `check_report_menus.js` (nuevo) contra `/web/webclient/load_menus`: 27 aserciones. `ventas` ve `sale`+`website_sale` y no ve stock/purchase/POS ni `menu_sale_config`/`menu_purchase_config`; `basic` ve los 4 Reportes y sigue sin los dos Configuration. También comprueba que cada nodo cuelga del padre esperado, para que no sea huérfano |
+| C15 | Un usuario POS normal **no** ve "Sales Details" ni "Session Report", y sí abre "Orders" | BUG-S-052 | ✅ `check_report_menus.js`: `basic` (tiene `group_pos_user`) ve `menu_report_pos_order_all` y NO ve los dos wizards. Confirmado el Access Denied del core con `search_read` como `basic`: `pos.details.wizard` y `pos.daily.sales.reports.wizard` lo tiran, y `report.pos.order` no. Es exactamente el Access Denied que el gate evita que el usuario pueda provocar |
 
 ## 2A. Scripts CDP (Fase 5)
 
@@ -57,6 +60,9 @@ Scripts en `cdp/`:
 - `cdp_drawer.js` — viewport 375px → toggle/backdrop/Escape (C7) ✅
 - `cdp_settings.js` — BUG-S-012: Ajustes navega en móvil (C8) ✅
 - `cdp_drawer_nav.js` — drawer cierra al navegar (C11 / S-013) ✅
+- `cdp_drawer_reporting.js` — drawer móvil recursivo con un usuario que sí tiene Reportes (C13) ✅
+- `check_report_menus.js` — gate de permisos de Reportes contra `load_menus` (C14, C15) ✅
+- `check_menu_leak.js` — diagnóstico de fuga de menús entre usuarios (sin regresión) ✅
 - `cdp_hover.js` — hover flyout estable por coordenadas reales (C3 / S-014) ✅
 - `cdp_layout.js` — R2 accumulation check (C12) ✅ límite del selector: `.o_main` no presente en Odoo 19; se mide rail/action_manager/content (correcto). ⚠️ BUG-S-020: sin `setViewport` → falsa alarma breakpoint a 800px
 - `cdp_allapps.js` — panel "Todas las aplicaciones" abre/cierra por coordenadas (C6) ✅
@@ -176,6 +182,8 @@ UI real.
 | C16 | Orden del rail = 10 entradas de `NAV_MAP` (por `aria-label`) | D-29 | `cdp_allapps.js` (A6 reescrito) | ✅ |
 | C17 | Usuario sin POS/stock/sales → los íconos **no** aparecen | D-30 | `cdp_matrix.js` (reescrito) | ✅ |
 | C18 | Fullscreen/drawer siguen OK con `isEntryActive` | R-N3 | `cdp_fullscreen.js`, `cdp_drawer_nav.js` | ✅ |
+| C19 | Los 4 submenús de Producto son visibles, cuelgan del padre esperado y Configuration sigue cerrada | D-41 | `check_product_menus.js` (nuevo, 26 aserciones) | ✅ admin/ventas/basic/inv |
+| C20 | La entrada Productos dibuja sus submenús como items navegables en drawer (375px) y flyout (1440px), sin cabeceras de grupo | D-41, BUG-S-055 | `cdp_productos_dom.js` (nuevo) | ✅ inv=2 items, basic=4 items, ambos viewports |
 
 ### Resultado real de la suite CDP (2026-09-26)
 

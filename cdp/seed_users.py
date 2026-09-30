@@ -58,9 +58,23 @@ def role(name):
 
 
 # (login, nombre, grupos extra sobre base.group_user)
+# `inv` existe para los submenus de Producto: es el unico usuario QA con
+# stock.group_stock_user y SIN product.group_product_variant ni
+# product.group_product_pricelist, que es justo el caso que depende de
+# security/product_menus.xml. `basic` NO sirve para eso: tiene los tres grupos.
 QA_USERS = [
     ("ventas", "Usuario Ventas", ["sales_team.group_sale_salesman", "CRM y Ventas ERPICO"]),
-    ("basic", "Usuario Basico", []),
+    # `basic` es el usuario "todas las apps de usuario, ningun manager". Este es
+    # el baseline con el que se calibraron los 122 menus, el rail de 9 items y las
+    # expectativas de check_report_menus.js; dejarlo en [] lo reduce a usuario
+    # interno pelado y rompe las tres cosas.
+    ("basic", "Usuario Basico", [
+        "sales_team.group_sale_salesman",
+        "stock.group_stock_user",
+        "purchase.group_purchase_user",
+        "point_of_sale.group_pos_user",
+    ]),
+    ("inv", "Usuario Inventario", ["Inventario ERPICO"]),
 ]
 ADMIN_ERPICO = list(ROLE_XMLIDS.keys())
 
@@ -71,7 +85,8 @@ def password_for(login):
         return os.environ.get("ODOO_PASSWORD") or "admin"
     if login == "ventas":
         return os.environ.get("ODOO_PASS_VENTAS") or os.environ.get("ODOO_PASSWORD") or "ventas"
-    return os.environ.get("ODOO_PASS_BASIC") or os.environ.get("ODOO_PASSWORD") or "basic"
+    # default: el login mismo (admin/admin, ventas/ventas, basic/basic, inv/inv)
+    return os.environ.get("ODOO_PASSWORD") or login
 
 
 Users = env["res.users"]

@@ -35,12 +35,21 @@ Todo se centraliza en `cdp/qa_config.js`; los scripts sólo importan de ahí.
 
 ## Usuarios de la matriz (cdp_matrix.js)
 
-`cdp_matrix.js` necesita `ventas` y `basic` con grupos exactos (`basic` sólo
-`Role / User`). `cdp/seed_users.py` los crea/repara — es idempotente. Los roles
-"… ERPICO" los resuelve por XMLID (`erpico_web_sidebar_roles.group_*_erpico`),
-así que **el subaddon `roles/erpico_web_sidebar_roles` tiene que estar
-instalado**; si no, el script avisa y deja a los usuarios con `base.group_user`
-solamente:
+`cdp_matrix.js` necesita `ventas` y `basic` con grupos exactos. `cdp/seed_users.py` los
+crea/repara — es idempotente. Los roles "… ERPICO" los resuelve por XMLID
+(`erpico_web_sidebar_roles.group_*_erpico`), así que **el subaddon
+`roles/erpico_web_sidebar_roles` tiene que estar instalado**; si no, el script avisa y
+deja a los usuarios con `base.group_user` solamente:
+
+| login | grupos | para qué |
+|---|---|---|
+| `ventas` | `Role / User` + `sales_team.group_sale_salesman` + rol CRM y Ventas ERPICO | matriz de permisos, usuario sin apps de inventario |
+| `basic` | `Role / User` + los grupos **usuario** de Ventas, Inventario, Compras y POS (**ningún manager**) | es el usuario con el que se calibraron los 122 menús, el rail de 9 items y las expectativas de `check_report_menus.js` |
+| `inv` | `Role / User` + rol Inventario ERPICO, nada más | único usuario QA con `stock.group_stock_user` y **sin** `product.group_product_variant`, que es el gate nativo de `stock.product_product_menu`. Por eso es el que prueba `product_menus.xml`: `basic` ya tenía ese grupo por otras vías y no distinguiría nada (BUG-S-056, D-41) |
+
+> `basic` estuvo un tiempo seedeado como `[]`, o sea usuario interno pelado, y el README
+> lo describía así. Eso rompía el baseline de la suite entera (rail de 2 entradas en vez de
+> 9) — ver BUG-S-056.
 
 ```powershell
 Get-Content cdp/seed_users.py -Raw | docker exec -i odoo_sidebar_test odoo shell -d sidebar_test --no-http --log-level=error --db_host=db_sidebar_test --db_user=odoo --db_password=odoo
@@ -92,6 +101,8 @@ Un script que no tiene checks (`check_dropdown*.js`) siempre sale con 0.
 | `cdp_hover.js` | Flyout de submenús (abre, estable, cierra) |
 | `cdp_drawer.js` | Drawer móvil: entradas, grupos, backdrop, Escape |
 | `cdp_drawer_nav.js` | El drawer cierra al navegar |
+| `cdp_drawer_reporting.js` | Drawer móvil recursivo: "Reportes" con sus hojas, grupos a depth ≥ 2, y navegación |
+| `cdp_productos_dom.js` | La entrada "Productos" dibuja sus submenús como items navegables, en drawer (375px) **y** flyout (1440px), sin cabeceras de grupo |
 | `cdp_layout.js` | Rail de 60px, sin acumulación de margen |
 | `cdp_fullscreen.js` | Ocultar/restaurar rail en acciones fullscreen |
 | `cdp_settings.js` | Ajustes navega a `/odoo/settings` y cierra el drawer |
@@ -101,7 +112,63 @@ Un script que no tiene checks (`check_dropdown*.js`) siempre sale con 0.
 | `cdp_verify_keyboard.js` | Drawer por teclado, cierre con mouseleave/Escape |
 | `check_dropdown*.js` | Verificación puntual del toggle del topbar |
 | `check_menu_leak.js` | Diagnóstico: compara `load_menus` entre usuarios (ver abajo) |
+| `check_report_menus.js` | Contrato de permisos de Reportes contra `load_menus` (C14, C15) |
+| `check_product_menus.js` | Contrato de permisos de Producto contra `load_menus` (C19) |
 | `seed_users.py` | Crea/repara los usuarios de la matriz (ver arriba) |
+
+## `check_product_menus.js` (permisos de Producto)
+
+Contrato de D-41. Corre en cuatro usuarios: `admin`, `ventas`, `basic` e `inv`.
+
+```powershell
+node check_product_menus.js                        # admin,ventas,basic,inv
+node check_product_menus.js inv,basic              # otro subconjunto
+```
+
+Verifica que los 4 submenús existen en `load_menus`, que cuelgan del padre esperado, y dos
+controles de escalada: *Configuration* de Inventario y de Ventas siguen ausentes, y Categorías
+de producto tampoco aparece (se decidió con el cliente no abrir Configuration para incluirla).
+
+`inv` es el caso con valor real: es el único usuario sin `product.group_product_variant`, o sea
+sin el gate nativo de *Variantes*. Si `product_menus.xml` no hiciera nada, "Variantes" no
+aparecería. Y como tampoco tiene `sales_team.group_sale_salesman`, se ve recortado a 2 items y
+no arrastra las apps Ventas ni Website al rail (`sale.sale_menu_root` ausente).
+
+## `check_report_menus.js` (permisos de Reportes)
+
+Valida el contrato de D-40 contra `/web/webclient/load_menus`, que es lo único que el
+sidebar consume: si el backend no manda el menú, el sidebar no lo puede inventar.
+
+```powershell
+node check_report_menus.js                 # admin,ventas,basic
+node check_report_menus.js ventas,basic     # otro subconjunto
+```
+
+Comprueba tres cosas, no dos:
+
+- presencia/ausencia de cada nodo de Reportes y de los dos *Configuration* de control;
+- que cada nodo **cuelgue del padre esperado**, para que no sea un menú huérfano que aparece en el
+  payload pero no se puede alcanzar (esto es lo que destapó BUG-S-054);
+- que *Configuration* siga ausente para quien no es manager, que es la contra-prueba de que abrir
+  Reportes no abrió de más.
+
+Las expectativas están escritas a mano a partir de los grupos reales de cada usuario, no
+generadas desde el resultado: autogenerar la fixture haría que el test pasara siempre.
+
+## `cdp_drawer_reporting.js` (drawer recursivo)
+
+Corre como `basic` a 375px porque es el usuario que tiene a la vez los grupos de usuario de
+Ventas, Inventario, Compras y POS. Los otros scripts de drawer corren como `admin`, y con el
+admin **ninguna** app produce la rama anidada de Reportes, así que la parte recursiva del
+template quedaba sin ejercitar.
+
+Dos detalles que costaron un rato y están explicados en el encabezado del script:
+
+- los clicks van por `element.click()` dentro de la página, no por `page.click()`: el toggle vive en
+  `.o_main_navbar` con `rect.y === 0` y a 375px el click por coordenadas no lo alcanza (el evento no
+  llega ni a fase capture del document);
+- el sidebar rotula la sección **"Reportes"** en español, no "Reporting" como se llama el nodo en el
+  core.
 
 ## `check_menu_leak.js` (diagnóstico, no es verde/rojo del addon)
 
@@ -121,6 +188,8 @@ si algún login falla o si detecta la fuga.
 
 **Histórico:** con los grupos de la 1.2.0 (sin `privilege_id` y mal seedados)
 `ventas` y `basic` recibían los mismos 74 menús. Con `erpico_web_sidebar_roles` y
-el seed correcto cada uno recibe lo suyo: **admin 259, ventas 74, basic 34**, y
-el script sale con 0. Si la fuga vuelve, el problema está en los grupos o en el
-seed, no en el sidebar.
+el seed correcto cada uno recibe lo suyo. Tras D-40 (que destapa Reportes a los
+usuarios de cada app) los números son **admin 259, ventas 80, basic 122**, y el
+script sale con 0. Que `basic` reciba más que `ventas` es lo esperado: `basic` tiene
+los grupos de usuario de las cuatro apps, `ventas` sólo el de Ventas. Si la fuga
+vuelve, el problema está en los grupos o en el seed, no en el sidebar.

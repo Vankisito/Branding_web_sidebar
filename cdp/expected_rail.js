@@ -62,12 +62,10 @@ const EXPECTED_RAIL = [
         id: "productos",
         label: "Productos",
         sections: [
-            {
-                xmlids: [
-                    "stock.menu_product_variant_config_stock",
-                    "stock.menu_stock_inventory_control",
-                ],
-            },
+            { label: "Productos", xmlids: ["stock.menu_product_variant_config_stock"] },
+            { label: "Variantes", xmlids: ["stock.product_product_menu"] },
+            { label: "Listas de precios", xmlids: ["sale.menu_product_pricelist_main"] },
+            { label: "Atributos", xmlids: ["website_sale.menu_product_attribute_action"] },
         ],
     },
     {
